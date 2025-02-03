@@ -312,15 +312,9 @@ const PurchaseOrders = () => {
           </div>
         </div>
         <div className="flex-1 overflow-auto p-4 bg-gray-100">
-          <object
-            data={pdfUrl}
-            type="application/pdf"
-            className="w-full h-full"
-          >
+          <object data={pdfUrl} type="application/pdf" className="w-full h-full">
             <iframe
-              src={`https://docs.google.com/viewer?url=${encodeURIComponent(
-                pdfUrl
-              )}&embedded=true`}
+              src={`https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(pdfUrl)}`}
               className="w-full h-full"
               title="PDF Preview"
             />
