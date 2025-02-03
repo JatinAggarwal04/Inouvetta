@@ -28,10 +28,10 @@ const Dashboard = () => {
 
   // Sample PDF URLs
   const pdfFiles = [
-    "/invoice_Aaron Hawkins_6817.pdf",
+    "invoice_Aaron Hawkins_6817.pdf",
     "invoice_Aimee Bixby_39797.pdf",
-    "/invoice_Angele Hood_35601.pdf",
-    "/invoice_Bill Donatelli_11631.pdf",
+    "invoice_Angele Hood_35601.pdf",
+    "invoice_Bill Donatelli_11631.pdf",
   ];
 
   const generateInvoiceId = () =>

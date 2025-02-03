@@ -16,17 +16,17 @@ const FlaggedForReview = () => {
   const [showNoFlaggedAlert, setShowNoFlaggedAlert] = useState(false);
 
   const flaggedPdfFiles = [
-    "/Flagged-1.pdf",
+    "Flagged-1.pdf",
     "Flagged-2.pdf",
-    "/Flagged-3.pdf",
-    "/Flagged-4.pdf",
+    "Flagged-3.pdf",
+    "Flagged-4.pdf",
   ];
 
   const purchaseOrderPdfFiles = [
-    "/invoice_Aaron Hawkins_6817.pdf",
+    "invoice_Aaron Hawkins_6817.pdf",
     "invoice_Aimee Bixby_39797.pdf",
-    "/invoice_Angele Hood_35601.pdf",
-    "/invoice_Bill Donatelli_11631.pdf",
+    "invoice_Angele Hood_35601.pdf",
+    "invoice_Bill Donatelli_11631.pdf",
   ];
 
   const generateInvoiceId = () => `INV-${Math.floor(Math.random() * 10000).toString().padStart(4, "0")}`;
