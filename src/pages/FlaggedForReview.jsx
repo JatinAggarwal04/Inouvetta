@@ -23,10 +23,10 @@ const FlaggedForReview = () => {
   ];
 
   const purchaseOrderPdfFiles = [
-    "/invoice_Aaron Hawkins_6817.pdf",
-    "/invoice_Aimee Bixby_39797.pdf",
-    "/invoice_Angele Hood_35601.pdf",
-    "/invoice_Bill Donatelli_11631.pdf",
+    "/purchase_orders_10251.pdf",
+    "/purchase_orders_10250.pdf",
+    "/purchase_orders_10249.pdf",
+    "/purchase_orders_10248.pdf",
   ];
 
   const generateInvoiceId = () => `INV-${Math.floor(Math.random() * 10000).toString().padStart(4, "0")}`;

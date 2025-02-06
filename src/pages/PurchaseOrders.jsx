@@ -16,10 +16,10 @@ const PurchaseOrders = () => {
   const [showAlert, setShowAlert] = useState(false);
 
   const pdfFiles = [
-    "/invoice_Aaron Hawkins_6817.pdf",
-    "/invoice_Aimee Bixby_39797.pdf",
-    "/invoice_Angele Hood_35601.pdf",
-    "/invoice_Bill Donatelli_11631.pdf",
+    "/purchase_orders_10251.pdf",
+    "/purchase_orders_10250.pdf",
+    "/purchase_orders_10249.pdf",
+    "/purchase_orders_10248.pdf",
   ];
 
   const generatePurchaseOrderId = () =>
@@ -68,7 +68,7 @@ const PurchaseOrders = () => {
           balanceDue: `${(Math.random() * 1000000).toFixed(2)}`,
           timeReceived: date.toLocaleTimeString(),
           date: date.toLocaleDateString(),
-          status: "Unsettled", // Default to "Unsettled"
+          status: "Unsettled",
           orderItems: Math.floor(Math.random() * 100) + 1,
           pdfUrl: pdfFiles[Math.floor(Math.random() * pdfFiles.length)],
         };
