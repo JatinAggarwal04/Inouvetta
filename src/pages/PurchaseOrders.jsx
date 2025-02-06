@@ -27,18 +27,18 @@ const PurchaseOrders = () => {
       .toString()
       .padStart(4, "0")}`;
 
-  const vendors = [
-    "Tech Solutions Inc.",
-    "Global Services Ltd.",
-    "Digital Systems Co.",
-    "Smart Electronics",
-    "Future Technologies",
-    "Innovation Corp",
-    "Data Systems LLC",
-    "Cloud Solutions Pro",
-    "Network Solutions",
-    "Software Dynamics",
-  ];
+      const vendors = [
+        "TechSol",
+        "GlobalServ",
+        "DigiSys",
+        "SmartElec",
+        "FutureTech",
+        "InnovCorp",
+        "DataSys",
+        "CloudPro",
+        "NetSol",
+        "SoftDyn",
+      ];
   const generateSummaryData = () => {
     const totalOrders = Math.floor(Math.random() * 100) + 30;
     const settledOrders =

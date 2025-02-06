@@ -24,18 +24,18 @@ const InvoicesArchive = () => {
   const generateInvoiceId = () =>
     `INV-${Math.floor(Math.random() * 10000).toString().padStart(4, "0")}`;
 
-  const vendors = [
-    "Tech Solutions Inc.",
-    "Global Services Ltd.",
-    "Digital Systems Co.",
-    "Smart Electronics",
-    "Future Technologies",
-    "Innovation Corp",
-    "Data Systems LLC",
-    "Cloud Solutions Pro",
-    "Network Solutions",
-    "Software Dynamics",
-  ];
+    const vendors = [
+      "TechSol",
+      "GlobalServ",
+      "DigiSys",
+      "SmartElec",
+      "FutureTech",
+      "InnovCorp",
+      "DataSys",
+      "CloudPro",
+      "NetSol",
+      "SoftDyn",
+    ];
 
   const generateTableData = (count) => {
     return Array(count)

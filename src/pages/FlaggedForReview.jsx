@@ -32,16 +32,16 @@ const FlaggedForReview = () => {
   const generateInvoiceId = () => `INV-${Math.floor(Math.random() * 10000).toString().padStart(4, "0")}`;
 
   const vendors = [
-    "Tech Solutions Inc.",
-    "Global Services Ltd.",
-    "Digital Systems Co.",
-    "Smart Electronics",
-    "Future Technologies",
-    "Innovation Corp",
-    "Data Systems LLC",
-    "Cloud Solutions Pro",
-    "Network Solutions",
-    "Software Dynamics",
+    "TechSol",
+    "GlobalServ",
+    "DigiSys",
+    "SmartElec",
+    "FutureTech",
+    "InnovCorp",
+    "DataSys",
+    "CloudPro",
+    "NetSol",
+    "SoftDyn",
   ];
 
   const reasons = ["Missing Details", "Mismatch with PO"];
@@ -381,7 +381,7 @@ const FlaggedForReview = () => {
       key: "date",
       direction: "descending",
     });
-  
+
     const sortedData = React.useMemo(() => {
       if (!sortConfig.key) return data;
       return [...data].sort((a, b) => {
@@ -396,7 +396,7 @@ const FlaggedForReview = () => {
         return 0;
       });
     }, [data, sortConfig]);
-  
+
     const requestSort = (key) => {
       let direction = "ascending";
       if (sortConfig.key === key && sortConfig.direction === "ascending") {
@@ -404,7 +404,7 @@ const FlaggedForReview = () => {
       }
       setSortConfig({ key, direction });
     };
-  
+
     return (
       <div className="bg-white rounded-xl shadow-md p-6">
         <div className="overflow-x-auto">
@@ -414,13 +414,10 @@ const FlaggedForReview = () => {
                 {[
                   "Invoice ID",
                   "Vendor Name",
-                  "Payment",
-                  "Time Received",
-                  "Date",
                   "Email ID",
+                  "Date",
                   "Reason",
-                  "Review Invoice",
-                  "Purchase Order", 
+                  "Flagged Invoice | PO",
                   "Approval",
                 ].map((column, index) => (
                   <th
@@ -445,53 +442,52 @@ const FlaggedForReview = () => {
                     {row.vendorName}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    ₹{row.payment.toLocaleString("en-IN")}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {row.timeReceived}
+                    {row.emailId}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {row.date}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {row.emailId}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {row.reason}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <button
-                      onClick={() => {
-                        const absolutePdfUrl = row.pdfUrl.startsWith("http")
-                          ? row.pdfUrl
-                          : `${window.location.origin}${
-                              row.pdfUrl.startsWith("/") ? "" : "/"
-                            }${row.pdfUrl}`;
-                        setSelectedPdf(absolutePdfUrl);
-                        setShowPdfPreview(true);
-                      }}
-                      className="text-red-600 hover:text-red-800 cursor-pointer transition-colors duration-200 p-2 rounded-full hover:bg-red-50"
-                      title="View PDF"
-                    >
-                      <FileText className="h-5 w-5" />
-                    </button>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <button
-                      onClick={() => {
-                        const absolutePdfUrl = row.purchaseOrderPdfUrl.startsWith("http")
-                          ? row.purchaseOrderPdfUrl
-                          : `${window.location.origin}${
-                              row.purchaseOrderPdfUrl.startsWith("/") ? "" : "/"
-                            }${row.purchaseOrderPdfUrl}`;
-                        setSelectedPdf(absolutePdfUrl);
-                        setShowPdfPreview(true);
-                      }}
-                      className="text-green-600 hover:text-green-800 cursor-pointer transition-colors duration-200 p-2 rounded-full hover:bg-green-50"
-                      title="View PDF"
-                    >
-                      <FileText className="h-5 w-5" />
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          const absolutePdfUrl = row.pdfUrl.startsWith("http")
+                            ? row.pdfUrl
+                            : `${window.location.origin}${
+                                row.pdfUrl.startsWith("/") ? "" : "/"
+                              }${row.pdfUrl}`;
+                          setSelectedPdf(absolutePdfUrl);
+                          setShowPdfPreview(true);
+                        }}
+                        className="text-red-600 hover:text-red-800 cursor-pointer transition-colors duration-200 p-2 rounded-full hover:bg-red-50 flex items-center gap-1"
+                        title="View Invoice"
+                      >
+                        <FileText className="h-5 w-5" />
+                        <span>Invoice</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          const absolutePdfUrl =
+                            row.purchaseOrderPdfUrl.startsWith("http")
+                              ? row.purchaseOrderPdfUrl
+                              : `${window.location.origin}${
+                                  row.purchaseOrderPdfUrl.startsWith("/")
+                                    ? ""
+                                    : "/"
+                                }${row.purchaseOrderPdfUrl}`;
+                          setSelectedPdf(absolutePdfUrl);
+                          setShowPdfPreview(true);
+                        }}
+                        className="text-green-600 hover:text-green-800 cursor-pointer transition-colors duration-200 p-2 rounded-full hover:bg-green-50 flex items-center gap-1"
+                        title="View Purchase Order"
+                      >
+                        <FileText className="h-5 w-5" />
+                        <span>PO</span>
+                      </button>
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <div className="flex gap-2">
