@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
+import { Analytics } from "@vercel/analytics/react";
 import InvoicesArchive from "./pages/InvoicesArchive";  
 import FlaggedForReview from "./pages/FlaggedForReview"; 
 import PurchaseOrders from "./pages/PurchaseOrders";  
@@ -60,6 +61,7 @@ const App = () => {
         <Route path="/purchase-order" element={<PurchaseOrders />} />  
         <Route path="/" element={<Dashboard />} />
       </Routes>
+      <Analytics />
     </Router>
   );
 };
