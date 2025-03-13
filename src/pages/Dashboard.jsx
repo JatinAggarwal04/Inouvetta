@@ -1,10 +1,29 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
 import FilterCard from '../components/FilterCard';
 import TableComponent from '../components/TableComponent';
+import SearchBar from '../components/SearchBar';
 
 const Dashboard = () => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [data, setData] = useState([]);
+
+  // Fetch PostgreSQL data
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/invoices');
+        const result = await response.json();
+        setData(result);
+      } catch (error) {
+        console.error('Error fetching invoices:', error);
+      }
+    };
+
+    fetchData();
+  }, []);
+
   const handlePaymentFilters = ({ minBalance, maxBalance, startDate, endDate }) => {
     console.log('Applying filters:', { minBalance, maxBalance, startDate, endDate });
   };
@@ -17,19 +36,22 @@ const Dashboard = () => {
     console.log('Opening PDF:', pdfUrl);
   };
 
-  // Example columns for the table - these would match your SQL data structure
   const columns = [
     { key: 'invoiceId', label: 'Invoice ID' },
     { key: 'vendorName', label: 'Vendor Name' },
     { key: 'balanceDue', label: 'Balance Due' },
-    { key: 'dateRecieved', label: 'Date' },
+    { key: 'dateReceived', label: 'Date' },
     { key: 'timeReceived', label: 'Time Received' },
     { key: 'status', label: 'Status' },
     { key: 'pdfUrl', label: 'Invoice' }
   ];
 
-  // Example empty data array - this would be replaced with your SQL data
-  const data = [];
+  // Filter data based on search query
+  const filteredData = data.filter(
+    (invoice) =>
+      invoice.invoiceId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      invoice.vendorName.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="min-h-screen bg-[#F2F2F2]">
@@ -41,15 +63,20 @@ const Dashboard = () => {
           Dashboard
         </h1>
 
+        {/* Filter Card Component */}
         <FilterCard 
           onApplyFilters={handlePaymentFilters}
           onResetFilters={handleResetFilters}
         />
 
+        {/* Search Bar Component */}
+        <SearchBar onSearch={setSearchQuery} />
+
+        {/* Table Component with PostgreSQL data */}
         <TableComponent 
           title="Invoices"
           columns={columns}
-          data={data}
+          data={filteredData}
           onPdfClick={handlePdfClick}
         />
       </main>

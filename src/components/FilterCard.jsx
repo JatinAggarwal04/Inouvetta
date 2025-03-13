@@ -10,8 +10,8 @@ const FilterCard = ({ onApplyFilters, onResetFilters }) => {
   useEffect(() => {
     const end = new Date();
     const start = new Date();
-    start.setDate(end.getDate() - 9);
-    
+    start.setDate(end.getDate() - 10); // ✅ Set default range to exactly 10 days
+
     setStartDate(start.toISOString().split('T')[0]);
     setEndDate(end.toISOString().split('T')[0]);
   }, []);
@@ -25,7 +25,6 @@ const FilterCard = ({ onApplyFilters, onResetFilters }) => {
     if (type === 'min') {
       setMinBalance(value);
     } else {
-      // Only validate max balance if min balance exists and max balance is not empty
       if (!minBalance || value === '' || parseFloat(value) >= parseFloat(minBalance)) {
         setMaxBalance(value);
       }
@@ -40,16 +39,16 @@ const FilterCard = ({ onApplyFilters, onResetFilters }) => {
   };
 
   const handleApplyFilters = () => {
-    if (startDate && endDate) {
-      if (calculateDateDifference(startDate, endDate) < 10) {
-        alert("Date range should be at least 10 days");
-        return;
-      }
+    const dateDiff = calculateDateDifference(startDate, endDate);
 
-      if (calculateDateDifference(startDate, endDate) > 10) {
-        setShowRangeWarning(true);
-        return;
-      }
+    if (dateDiff < 10) {
+      alert("Date range should be at least 10 days");
+      return;
+    }
+
+    if (dateDiff > 10) {
+      setShowRangeWarning(true);
+      return;
     }
 
     onApplyFilters({
@@ -63,7 +62,7 @@ const FilterCard = ({ onApplyFilters, onResetFilters }) => {
   const handleResetFilters = () => {
     const end = new Date();
     const start = new Date();
-    start.setDate(end.getDate() - 9);
+    start.setDate(end.getDate() - 10); // ✅ Reset to exactly 10 days
 
     setMinBalance('');
     setMaxBalance('');
