@@ -131,9 +131,6 @@ const PurchaseOrders = () => {
             { key: "order_date", label: "Order Date" },
             { key: "total_amount", label: "Total Amount" },
             { key: "balanceDue", label: "Balance Due" },
-            { key: "cgst_amount", label: "CGST Amount" },
-            { key: "sgst_amount", label: "SGST Amount" },
-            { key: "igst_amount", label: "IGST Amount" },
             { key: "status", label: "Status" }
           ]} 
           data={searchFilteredData} 
