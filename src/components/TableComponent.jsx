@@ -56,7 +56,11 @@ const TableComponent = ({
                         <FileText className="h-5 w-5" />
                       </button>
                     ) : column.key === 'balanceDue' ? (
+                      row[column.key] !== null && !isNaN(parseFloat(row[column.key])) ? (
                       <span>₹{parseFloat(row[column.key]).toLocaleString('en-IN')}</span>
+                    ) : (
+                      <span></span>
+                    )
                     ) : column.key === 'products' ? (
                       <div className="whitespace-pre-line">
                         {row[column.key]}
