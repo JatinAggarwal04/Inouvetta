@@ -20,7 +20,7 @@ const PurchaseOrders = () => {
 
       // ✅ Fetch purchase order items (products per order_id)
       const { data: orderItems, error: itemsError } = await supabase.from("purchase_order_item").select(
-        "order_id, product_id, product_description, unit_price, quantity"
+        "order_id, product_id, product_description, unit_price, quantity, line_total"
       );
 
       // ✅ Fetch vendors (replace vendor_id with vendor_name & gstin)
@@ -39,34 +39,55 @@ const PurchaseOrders = () => {
   // ✅ Process and merge data
   const generateTableData = () => {
     const { orders, orderItems, vendors } = rawData;
-
+  
     // ✅ Create a lookup for vendor_name and gstin
     const vendorMap = {};
     vendors.forEach((vendor) => {
       vendorMap[vendor.vendor_id] = { vendor_name: vendor.vendor_name, gstin: vendor.gstin };
     });
-
-    // ✅ Group products by order_id
-    const orderItemsMap = {};
-    orderItems.forEach((item) => {
-      if (!orderItemsMap[item.order_id]) {
-        orderItemsMap[item.order_id] = [];
+  
+    const finalData = [];
+  
+    // ✅ Iterate through orders and attach products as separate rows
+    orders.forEach((order) => {
+      const products = orderItems.filter((item) => item.order_id === order.order_id);
+  
+      if (products.length === 0) {
+        // ✅ If no products exist, still add a single row
+        finalData.push({
+          order_id: order.order_id,
+          vendor_name: vendorMap[order.vendor_id]?.vendor_name || "Unknown Vendor",
+          gstin: vendorMap[order.vendor_id]?.gstin || "N/A",
+          order_date: order.order_date,
+          balanceDue: parseFloat(order.total_amount || "0"), // ✅ Show once
+          status: "Unsettled",
+          product_id: "No Products",
+          product_description: "No Products",
+          unit_price: "No Products",
+          quantity: "No Products",
+          total_price: "No Products", // ✅ New column
+        });
+      } else {
+        // ✅ If products exist, add each product as a separate row
+        products.forEach((product, index) => {
+          finalData.push({
+            order_id: index === 0 ? order.order_id : "", // ✅ Show order_id only on first row
+            vendor_name: index === 0 ? vendorMap[order.vendor_id]?.vendor_name || "Unknown Vendor" : "",
+            gstin: index === 0 ? vendorMap[order.vendor_id]?.gstin || "N/A" : "",
+            order_date: index === 0 ? order.order_date : "",
+            balanceDue: index === 0 ? parseFloat(order.total_amount || "0") : "", // ✅ Show only in first row
+            status: index === 0 ? "Unsettled" : "",
+            product_id: product.product_id,
+            product_description: product.product_description,
+            unit_price: `₹${product.unit_price}`,
+            quantity: product.quantity,
+            total_price: product.line_total ? `₹${product.line_total}` : "N/A", // ✅ Handle undefined case
+          });
+        });
       }
-      orderItemsMap[item.order_id].push(
-        `ID: ${item.product_id}, ${item.product_description}, Qty: ${item.quantity}, ₹${item.unit_price}`
-      );
     });
-
-    // ✅ Merge purchase order details with grouped products
-    return orders.map((order) => ({
-      order_id: order.order_id,
-      vendor_name: vendorMap[order.vendor_id]?.vendor_name || "Unknown Vendor",
-      gstin: vendorMap[order.vendor_id]?.gstin || "N/A",
-      order_date: order.order_date,
-      balanceDue: parseFloat(order.total_amount || "0"),
-      status: "Unsettled",
-      products: orderItemsMap[order.order_id]?.join("\n") || "No products",
-    }));
+  
+    return finalData;
   };
 
   // ✅ Fetch data on component mount
@@ -146,18 +167,22 @@ const PurchaseOrders = () => {
 
         {/* ✅ Pass the filtered & searched data to TableComponent */}
         <TableComponent 
-          title="Purchase Orders" 
-          columns={[
-            { key: "order_id", label: "Order ID" },
-            { key: "vendor_name", label: "Vendor Name" },
-            { key: "gstin", label: "GSTIN" },
-            { key: "order_date", label: "Order Date" },
-            { key: "balanceDue", label: "Balance Due" },
-            { key: "status", label: "Status" },
-            { key: "products", label: "Products" } // ✅ Displays multiple products vertically
-          ]} 
-          data={searchFilteredData} 
-        />
+  title="Purchase Orders" 
+  columns={[
+    { key: "order_id", label: "Order ID" },
+    { key: "vendor_name", label: "Vendor Name" },
+    { key: "gstin", label: "GSTIN" },
+    { key: "order_date", label: "Order Date" },
+    { key: "balanceDue", label: "Balance Due" },
+    { key: "status", label: "Status" },
+    { key: "product_id", label: "Product ID" }, 
+    { key: "product_description", label: "Product Description" },
+    { key: "unit_price", label: "Unit Price" },
+    { key: "quantity", label: "Quantity" },
+    { key: "total_price", label: "Total Price" }, // ✅ New column
+  ]} 
+  data={searchFilteredData} 
+/>
       </main>
     </div>
   );
