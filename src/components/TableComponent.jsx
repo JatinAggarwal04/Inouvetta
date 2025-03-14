@@ -1,7 +1,7 @@
 import React from 'react';
 import { FileText } from 'lucide-react';
 
-const DataTable = ({ 
+const TableComponent = ({ 
   data = [], 
   columns = [], 
   onPdfClick,
@@ -41,7 +41,7 @@ const DataTable = ({
                 {columns.map((column, colIndex) => (
                   <td 
                     key={colIndex} 
-                    className="px-6 py-4 whitespace-nowrap text-sm"
+                    className={`px-6 py-4 text-sm ${column.key === 'products' ? 'whitespace-pre-line' : 'whitespace-nowrap'}`}
                   >
                     {column.key === 'status' ? (
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(row[column.key])}`}>
@@ -57,6 +57,10 @@ const DataTable = ({
                       </button>
                     ) : column.key === 'balanceDue' ? (
                       <span>₹{parseFloat(row[column.key]).toLocaleString('en-IN')}</span>
+                    ) : column.key === 'products' ? (
+                      <div className="whitespace-pre-line">
+                        {row[column.key]}
+                      </div>
                     ) : (
                       row[column.key]
                     )}
@@ -71,4 +75,4 @@ const DataTable = ({
   );
 };
 
-export default DataTable;
+export default TableComponent;
