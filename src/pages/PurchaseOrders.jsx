@@ -10,64 +10,86 @@ const PurchaseOrders = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [tableData, setTableData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
-  const [vendors, setVendors] = useState([]);
+  const [rawData, setRawData] = useState({ orders: [], orderItems: [], vendors: [] });
 
-  // ✅ Fetch Vendors (Kept Same)
-  const fetchVendors = async () => {
+  // ✅ Fetch raw data
+  const fetchDetails = async () => {
     try {
-      const { data, error } = await supabase.from("vendors_db").select("vendor_name");
+      // ✅ Fetch purchase orders
+      const { data: orders, error: ordersError } = await supabase.from("purchase_orders").select("*");
 
-      if (error) {
-        console.error("Error fetching vendors from Supabase:", error);
-        return [];
-      }
+      // ✅ Fetch purchase order items (products per order_id)
+      const { data: orderItems, error: itemsError } = await supabase.from("purchase_order_item").select(
+        "order_id, product_id, product_description, unit_price, quantity"
+      );
 
-      const vendorNames = data.map((item) => item.vendor_name);
-      setVendors(vendorNames);
-    } catch (err) {
-      console.error("Unexpected error while fetching vendors:", err);
-    }
-  };
+      // ✅ Fetch vendors (replace vendor_id with vendor_name & gstin)
+      const { data: vendors, error: vendorsError } = await supabase.from("vendors_db").select("vendor_id, vendor_name, gstin");
 
-  // ✅ Fetch Purchase Orders (Kept Same)
-  const generateTableData = async () => {
-    try {
-      const { data, error } = await supabase.from("purchase_orders").select("*");
+      if (ordersError) console.error("Error fetching purchase orders:", ordersError);
+      if (itemsError) console.error("Error fetching order items:", itemsError);
+      if (vendorsError) console.error("Error fetching vendors:", vendorsError);
 
-      if (error) {
-        console.error("Error fetching data from Supabase:", error);
-        return [];
-      }
-
-      await fetchVendors(); // Fetch vendors separately
-
-      const formattedData = data.map((item) => ({
-        ...item,
-        balanceDue: parseFloat(item.total_amount || "0"),
-        status: "Unsettled",
-      }));
-
-      return formattedData || [];
+      setRawData({ orders: orders || [], orderItems: orderItems || [], vendors: vendors || [] });
     } catch (err) {
       console.error("Unexpected error while fetching data:", err);
-      return [];
     }
   };
 
-  // ✅ Fetch Data on Component Load
+  // ✅ Process and merge data
+  const generateTableData = () => {
+    const { orders, orderItems, vendors } = rawData;
+
+    // ✅ Create a lookup for vendor_name and gstin
+    const vendorMap = {};
+    vendors.forEach((vendor) => {
+      vendorMap[vendor.vendor_id] = { vendor_name: vendor.vendor_name, gstin: vendor.gstin };
+    });
+
+    // ✅ Group products by order_id
+    const orderItemsMap = {};
+    orderItems.forEach((item) => {
+      if (!orderItemsMap[item.order_id]) {
+        orderItemsMap[item.order_id] = [];
+      }
+      orderItemsMap[item.order_id].push(
+        `ID: ${item.product_id}, ${item.product_description}, Qty: ${item.quantity}, ₹${item.unit_price}`
+      );
+    });
+
+    // ✅ Merge purchase order details with grouped products
+    return orders.map((order) => ({
+      order_id: order.order_id,
+      vendor_name: vendorMap[order.vendor_id]?.vendor_name || "Unknown Vendor",
+      gstin: vendorMap[order.vendor_id]?.gstin || "N/A",
+      order_date: order.order_date,
+      balanceDue: parseFloat(order.total_amount || "0"),
+      status: "Unsettled",
+      products: orderItemsMap[order.order_id]?.join("\n") || "No products",
+    }));
+  };
+
+  // ✅ Fetch data on component mount
   useEffect(() => {
     const fetchData = async () => {
-      console.log("Fetching purchase orders...");
-      const data = await generateTableData();
-      console.log("Fetched Data:", data); // 🔍 Check if data is being fetched
-      setTableData(data);
-      setFilteredData(data); // ✅ Initialize filteredData with full data
+      console.log("Fetching purchase details...");
+      await fetchDetails(); // Fetch raw data
     };
 
     fetchData();
   }, []);
 
-  // ✅ Apply Filters from FilterCard
+  // ✅ Process data when rawData updates
+  useEffect(() => {
+    if (rawData.orders.length) {
+      const processedData = generateTableData();
+      console.log("Processed Data:", processedData);
+      setTableData(processedData);
+      setFilteredData(processedData);
+    }
+  }, [rawData]);
+
+  // ✅ Apply Filters
   const handleApplyFilters = ({ minBalance, maxBalance, startDate, endDate }) => {
     let filtered = [...tableData];
 
@@ -89,17 +111,17 @@ const PurchaseOrders = () => {
 
   // ✅ Reset Filters
   const handleResetFilters = () => {
-    setFilteredData(tableData); // ✅ Reset to full data
+    setFilteredData(tableData);
   };
 
-  // ✅ Apply Search Filter AFTER Applying Filters
+  // ✅ Apply Search
   const searchFilteredData = filteredData.filter((order) => {
-    if (!searchQuery) return true; // ✅ If search is empty, show all data
+    if (!searchQuery) return true;
 
     const lowerSearch = searchQuery.toLowerCase();
     return (
-      String(order.order_id).toLowerCase().includes(lowerSearch) || // ✅ Convert to string first
-      (order.vendor_name && order.vendor_name.toLowerCase().includes(lowerSearch)) // ✅ Ensure vendor_name exists
+      String(order.order_id).toLowerCase().includes(lowerSearch) ||
+      (order.vendor_name && order.vendor_name.toLowerCase().includes(lowerSearch))
     );
   });
 
@@ -127,11 +149,12 @@ const PurchaseOrders = () => {
           title="Purchase Orders" 
           columns={[
             { key: "order_id", label: "Order ID" },
-            { key: "vendor_id", label: "Vendor ID" },
+            { key: "vendor_name", label: "Vendor Name" },
+            { key: "gstin", label: "GSTIN" },
             { key: "order_date", label: "Order Date" },
-            { key: "total_amount", label: "Total Amount" },
             { key: "balanceDue", label: "Balance Due" },
-            { key: "status", label: "Status" }
+            { key: "status", label: "Status" },
+            { key: "products", label: "Products" } // ✅ Displays multiple products vertically
           ]} 
           data={searchFilteredData} 
         />
