@@ -7,8 +7,9 @@ import SearchBar from "../components/SearchBar";
 import supabase from "../supabaseClient";
 
 const PurchaseOrders = () => {
-  const [searchQuery, setSearchQuery] = useState(""); // ✅ Keeps track of search input
+  const [searchQuery, setSearchQuery] = useState("");
   const [tableData, setTableData] = useState([]);
+  const [filteredData, setFilteredData] = useState([]);
   const [vendors, setVendors] = useState([]);
 
   // ✅ Fetch Vendors (Kept Same)
@@ -60,15 +61,41 @@ const PurchaseOrders = () => {
       const data = await generateTableData();
       console.log("Fetched Data:", data); // 🔍 Check if data is being fetched
       setTableData(data);
+      setFilteredData(data); // ✅ Initialize filteredData with full data
     };
 
     fetchData();
   }, []);
 
-  // ✅ Apply Search Filter (Fixes the issue)
-  const searchFilteredData = tableData.filter((order) => {
+  // ✅ Apply Filters from FilterCard
+  const handleApplyFilters = ({ minBalance, maxBalance, startDate, endDate }) => {
+    let filtered = [...tableData];
+
+    if (minBalance) {
+      filtered = filtered.filter((item) => item.balanceDue >= parseFloat(minBalance));
+    }
+    if (maxBalance) {
+      filtered = filtered.filter((item) => item.balanceDue <= parseFloat(maxBalance));
+    }
+    if (startDate && endDate) {
+      filtered = filtered.filter((item) => {
+        const itemDate = new Date(item.order_date);
+        return itemDate >= new Date(startDate) && itemDate <= new Date(endDate);
+      });
+    }
+
+    setFilteredData(filtered);
+  };
+
+  // ✅ Reset Filters
+  const handleResetFilters = () => {
+    setFilteredData(tableData); // ✅ Reset to full data
+  };
+
+  // ✅ Apply Search Filter AFTER Applying Filters
+  const searchFilteredData = filteredData.filter((order) => {
     if (!searchQuery) return true; // ✅ If search is empty, show all data
-  
+
     const lowerSearch = searchQuery.toLowerCase();
     return (
       String(order.order_id).toLowerCase().includes(lowerSearch) || // ✅ Convert to string first
@@ -86,28 +113,31 @@ const PurchaseOrders = () => {
           Purchase Orders
         </h1>
 
-        {/* Filter Card */}
-        <FilterCard vendors={vendors} />
+        {/* ✅ Pass filter functions to FilterCard */}
+        <FilterCard 
+          onApplyFilters={handleApplyFilters} 
+          onResetFilters={handleResetFilters} 
+        />
 
         {/* ✅ SearchBar now updates `searchQuery` */}
         <SearchBar onSearch={setSearchQuery} />
 
-        {/* ✅ Pass the filtered data to TableComponent */}
+        {/* ✅ Pass the filtered & searched data to TableComponent */}
         <TableComponent 
-  title="Purchase Orders" 
-  columns={[
-    { key: "order_id", label: "Order ID" },
-    { key: "vendor_id", label: "Vendor ID" },
-    { key: "order_date", label: "Order Date" },
-    { key: "total_amount", label: "Total Amount" },
-    { key: "balanceDue", label: "Balance Due" },
-    { key: "cgst_amount", label: "CGST Amount" },
-    { key: "sgst_amount", label: "SGST Amount" },
-    { key: "igst_amount", label: "IGST Amount" },
-    { key: "status", label: "Status" }
-  ]} 
-  data={searchFilteredData} 
-/>
+          title="Purchase Orders" 
+          columns={[
+            { key: "order_id", label: "Order ID" },
+            { key: "vendor_id", label: "Vendor ID" },
+            { key: "order_date", label: "Order Date" },
+            { key: "total_amount", label: "Total Amount" },
+            { key: "balanceDue", label: "Balance Due" },
+            { key: "cgst_amount", label: "CGST Amount" },
+            { key: "sgst_amount", label: "SGST Amount" },
+            { key: "igst_amount", label: "IGST Amount" },
+            { key: "status", label: "Status" }
+          ]} 
+          data={searchFilteredData} 
+        />
       </main>
     </div>
   );
