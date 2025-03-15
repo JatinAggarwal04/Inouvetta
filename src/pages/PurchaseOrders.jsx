@@ -49,9 +49,48 @@ const PurchaseOrders = () => {
     const finalData = [];
   
     // ✅ Iterate through orders and attach products as separate rows
+    // orders.forEach((order) => {
+    //   const products = orderItems.filter((item) => item.order_id === order.order_id);
+  
+    //   if (products.length === 0) {
+    //     // ✅ If no products exist, still add a single row
+    //     finalData.push({
+    //       order_id: order.order_id,
+    //       vendor_name: vendorMap[order.vendor_id]?.vendor_name || "Unknown Vendor",
+    //       gstin: vendorMap[order.vendor_id]?.gstin || "N/A",
+    //       order_date: order.order_date,
+    //       balanceDue: parseFloat(order.total_amount || "0"), // ✅ Show once
+    //       status: "Unsettled",
+    //       product_id: "No Products",
+    //       product_description: "No Products",
+    //       unit_price: "No Products",
+    //       quantity: "No Products",
+    //       total_price: "No Products", // ✅ New column
+    //     });
+    //   } else {
+    //     // ✅ If products exist, add each product as a separate row
+    //     products.forEach((product, index) => {
+    //       finalData.push({
+    //         order_id: index === 0 ? order.order_id : "", // ✅ Show order_id only on first row
+    //         vendor_name: index === 0 ? vendorMap[order.vendor_id]?.vendor_name || "Unknown Vendor" : "",
+    //         gstin: index === 0 ? vendorMap[order.vendor_id]?.gstin || "N/A" : "",
+    //         order_date: index === 0 ? order.order_date : "",
+    //         balanceDue: index === 0 ? parseFloat(order.total_amount || "0") : "", // ✅ Show only in first row
+    //         status: index === 0 ? "Unsettled" : "",
+    //         product_id: product.product_id,
+    //         product_description: product.product_description,
+    //         unit_price: `₹${product.unit_price}`,
+    //         quantity: product.quantity,
+    //         total_price: product.line_total ? `₹${product.line_total}` : "N/A", // ✅ Handle undefined case
+    //       });
+    //     });
+    //   }
+    // });
     orders.forEach((order) => {
       const products = orderItems.filter((item) => item.order_id === order.order_id);
-  
+    
+      // Check if the total_amount is a valid number
+    
       if (products.length === 0) {
         // ✅ If no products exist, still add a single row
         finalData.push({
@@ -59,7 +98,7 @@ const PurchaseOrders = () => {
           vendor_name: vendorMap[order.vendor_id]?.vendor_name || "Unknown Vendor",
           gstin: vendorMap[order.vendor_id]?.gstin || "N/A",
           order_date: order.order_date,
-          balanceDue: parseFloat(order.total_amount || "0"), // ✅ Show once
+          balanceDue: order.total_amount, // ✅ Properly formatted amount
           status: "Unsettled",
           product_id: "No Products",
           product_description: "No Products",
@@ -75,7 +114,7 @@ const PurchaseOrders = () => {
             vendor_name: index === 0 ? vendorMap[order.vendor_id]?.vendor_name || "Unknown Vendor" : "",
             gstin: index === 0 ? vendorMap[order.vendor_id]?.gstin || "N/A" : "",
             order_date: index === 0 ? order.order_date : "",
-            balanceDue: index === 0 ? parseFloat(order.total_amount || "0") : "", // ✅ Show only in first row
+            balanceDue: index === 0 ? order.total_amount : "", // ✅ Show only in first row
             status: index === 0 ? "Unsettled" : "",
             product_id: product.product_id,
             product_description: product.product_description,
@@ -86,6 +125,8 @@ const PurchaseOrders = () => {
         });
       }
     });
+    
+    
   
     return finalData;
   };
