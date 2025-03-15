@@ -20,7 +20,7 @@ const PurchaseOrders = () => {
 
       // ✅ Fetch purchase order items (products per order_id)
       const { data: orderItems, error: itemsError } = await supabase.from("purchase_order_item").select(
-        "order_id, product_id, product_description, unit_price, quantity, line_total"
+        "order_id, product_id, product_description, unit_price, quantity, line_total, cgst_rate, cgst_amount,sgst_rate, sgst_amount, igst_rate, igst_amount"
       );
 
       // ✅ Fetch vendors (replace vendor_id with vendor_name & gstin)
@@ -88,39 +88,47 @@ const PurchaseOrders = () => {
     // });
     orders.forEach((order) => {
       const products = orderItems.filter((item) => item.order_id === order.order_id);
-    
-      // Check if the total_amount is a valid number
-    
+  
       if (products.length === 0) {
-        // ✅ If no products exist, still add a single row
         finalData.push({
           order_id: order.order_id,
           vendor_name: vendorMap[order.vendor_id]?.vendor_name || "Unknown Vendor",
           gstin: vendorMap[order.vendor_id]?.gstin || "N/A",
           order_date: order.order_date,
-          balanceDue: order.total_amount, // ✅ Properly formatted amount
+          balanceDue: order.total_amount,
           status: "Unsettled",
           product_id: "No Products",
           product_description: "No Products",
           unit_price: "No Products",
           quantity: "No Products",
-          total_price: "No Products", // ✅ New column
+          total_price: "No Products",
+          cgst_rate: "N/A",
+          cgst_amount: "N/A",
+          sgst_rate: "N/A",
+          sgst_amount: "N/A",
+          igst_rate: "N/A",
+          igst_amount: "N/A",
         });
       } else {
-        // ✅ If products exist, add each product as a separate row
         products.forEach((product, index) => {
           finalData.push({
-            order_id: index === 0 ? order.order_id : "", // ✅ Show order_id only on first row
+            order_id: index === 0 ? order.order_id : "",
             vendor_name: index === 0 ? vendorMap[order.vendor_id]?.vendor_name || "Unknown Vendor" : "",
             gstin: index === 0 ? vendorMap[order.vendor_id]?.gstin || "N/A" : "",
             order_date: index === 0 ? order.order_date : "",
-            balanceDue: index === 0 ? order.total_amount : "", // ✅ Show only in first row
+            balanceDue: index === 0 ? order.total_amount : "",
             status: index === 0 ? "Unsettled" : "",
             product_id: product.product_id,
             product_description: product.product_description,
-            unit_price: `₹${product.unit_price}`,
+            unit_price: product.unit_price ? `₹${product.unit_price}` : "N/A",
             quantity: product.quantity,
-            total_price: product.line_total ? `₹${product.line_total}` : "N/A", // ✅ Handle undefined case
+            total_price: product.line_total ? `₹${product.line_total}` : "N/A",
+            cgst_rate: product.cgst_rate ? `${product.cgst_rate}%` : "N/A",
+            cgst_amount: product.cgst_amount ? `₹${product.cgst_amount}` : "N/A",
+            sgst_rate: product.sgst_rate ? `${product.sgst_rate}%` : "N/A",
+            sgst_amount: product.sgst_amount ? `₹${product.sgst_amount}` : "N/A",
+            igst_rate: product.igst_rate ? `${product.igst_rate}%` : "N/A",
+            igst_amount: product.igst_amount ? `₹${product.igst_amount}` : "N/A",
           });
         });
       }
@@ -220,7 +228,13 @@ const PurchaseOrders = () => {
     { key: "product_description", label: "Product Description" },
     { key: "unit_price", label: "Unit Price" },
     { key: "quantity", label: "Quantity" },
-    { key: "total_price", label: "Total Price" }, // ✅ New column
+    { key: "cgst_rate", label: "CGST Rate (%)" },
+    { key: "cgst_amount", label: "CGST Amount" },
+    { key: "sgst_rate", label: "SGST Rate (%)" },
+    { key: "sgst_amount", label: "SGST Amount" },
+    { key: "igst_rate", label: "IGST Rate (%)" },
+    { key: "igst_amount", label: "IGST Amount" },
+    { key: "total_price", label: "Total Price" },
   ]} 
   data={searchFilteredData} 
 />
