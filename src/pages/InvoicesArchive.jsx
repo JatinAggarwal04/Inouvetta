@@ -4,7 +4,7 @@ import Sidebar from "../components/Sidebar";
 import FilterCard from "../components/FilterCard";
 import TableComponent from "../components/TableComponent";
 import SearchBar from "../components/SearchBar";
-import { FaTimes } from "react-icons/fa";
+import { FaTimes, FaLock } from "react-icons/fa";
 import supabase from "../supabaseClient";
 
 const InvoicesArchive = () => {
@@ -13,9 +13,42 @@ const InvoicesArchive = () => {
   const [filteredData, setFilteredData] = useState([]);
   const [rawData, setRawData] = useState({ invoices: [], vendors: [] });
   const [selectedPdf, setSelectedPdf] = useState(null);
+  
+  // Authentication states
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [password, setPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Correct password - in a real application, this would be handled securely on the server
+  const CORRECT_PASSWORD = "invoice2025"; // This should be stored securely in production
+
+  // Handle password change
+  const handlePasswordChange = (e) => {
+    setPassword(e.target.value);
+  };
+
+  // Handle password submission
+  const handlePasswordSubmit = (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setPasswordError("");
+    
+    // Simulate server verification with a slight delay
+    setTimeout(() => {
+      if (password === CORRECT_PASSWORD) {
+        setIsAuthenticated(true);
+      } else {
+        setPasswordError("Incorrect password. Please try again.");
+      }
+      setIsLoading(false);
+    }, 800);
+  };
 
   // ✅ Fetch raw data (Invoices + Vendors)
   const fetchDetails = async () => {
+    if (!isAuthenticated) return;
+    
     try {
       // ✅ Fetch invoices (including pdf_url)
       const { data: invoices, error: invoicesError } = await supabase
@@ -67,15 +100,13 @@ const InvoicesArchive = () => {
     }));
   };
 
-  // ✅ Fetch data on component mount
+  // ✅ Fetch data when authenticated
   useEffect(() => {
-    const fetchData = async () => {
+    if (isAuthenticated) {
       console.log("Fetching invoice details...");
-      await fetchDetails();
-    };
-
-    fetchData();
-  }, []);
+      fetchDetails();
+    }
+  }, [isAuthenticated]);
 
   // ✅ Process data when rawData updates
   useEffect(() => {
@@ -143,15 +174,84 @@ const InvoicesArchive = () => {
     setSelectedPdf(null);
   };
 
+  // Login form component
+  const LoginForm = () => {
+    // Use useRef to maintain reference to the input element
+    const passwordInputRef = React.useRef(null);
+    
+    // Focus the input field when component mounts
+    React.useEffect(() => {
+      if (passwordInputRef.current) {
+        passwordInputRef.current.focus();
+      }
+    }, []);
+    
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#F2F2F2] px-4">
+        <div className="w-full max-w-md p-8 bg-white rounded-lg shadow-md">
+          <div className="flex justify-center mb-6">
+            <div className="p-3 bg-blue-100 rounded-full">
+              <FaLock size={24} className="text-blue-600" />
+            </div>
+          </div>
+          <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">
+            Secure Invoice Archive
+          </h2>
+          <form onSubmit={handlePasswordSubmit} autoComplete="off">
+            <div className="mb-4">
+              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="password">
+                Enter Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={handlePasswordChange}
+                ref={passwordInputRef}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter access password"
+                required
+                autoComplete="new-password"
+              />
+              {passwordError && (
+                <p className="text-red-500 text-sm mt-2">{passwordError}</p>
+              )}
+            </div>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className={`w-full py-2 px-4 rounded-md font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                isLoading ? "opacity-70 cursor-not-allowed" : ""
+              }`}
+            >
+              {isLoading ? "Verifying..." : "Access Invoices"}
+            </button>
+          </form>
+          <p className="mt-6 text-sm text-center text-gray-600">
+            This page contains confidential financial information.
+            <br />
+            Authorized personnel only.
+          </p>
+        </div>
+      </div>
+    );
+  };
+
+  if (!isAuthenticated) {
+    return <LoginForm />;
+  }
+
   return (
     <div className="min-h-screen bg-[#F2F2F2] relative">
       <Navbar />
       <Sidebar />
 
       <main className="ml-[280px] pt-24 px-6">
-        <h1 className="text-4xl font-serif font-bold text-gray-800 mb-8">
-          Invoices Archive
-        </h1>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-4xl font-serif font-bold text-gray-800">
+            Invoices Archive
+          </h1>
+        </div>
 
         {/* Pass tableData to FilterCard for download functionality */}
         <FilterCard
