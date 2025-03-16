@@ -48,44 +48,6 @@ const PurchaseOrders = () => {
   
     const finalData = [];
   
-    // ✅ Iterate through orders and attach products as separate rows
-    // orders.forEach((order) => {
-    //   const products = orderItems.filter((item) => item.order_id === order.order_id);
-  
-    //   if (products.length === 0) {
-    //     // ✅ If no products exist, still add a single row
-    //     finalData.push({
-    //       order_id: order.order_id,
-    //       vendor_name: vendorMap[order.vendor_id]?.vendor_name || "Unknown Vendor",
-    //       gstin: vendorMap[order.vendor_id]?.gstin || "N/A",
-    //       order_date: order.order_date,
-    //       balanceDue: parseFloat(order.total_amount || "0"), // ✅ Show once
-    //       status: "Unsettled",
-    //       product_id: "No Products",
-    //       product_description: "No Products",
-    //       unit_price: "No Products",
-    //       quantity: "No Products",
-    //       total_price: "No Products", // ✅ New column
-    //     });
-    //   } else {
-    //     // ✅ If products exist, add each product as a separate row
-    //     products.forEach((product, index) => {
-    //       finalData.push({
-    //         order_id: index === 0 ? order.order_id : "", // ✅ Show order_id only on first row
-    //         vendor_name: index === 0 ? vendorMap[order.vendor_id]?.vendor_name || "Unknown Vendor" : "",
-    //         gstin: index === 0 ? vendorMap[order.vendor_id]?.gstin || "N/A" : "",
-    //         order_date: index === 0 ? order.order_date : "",
-    //         balanceDue: index === 0 ? parseFloat(order.total_amount || "0") : "", // ✅ Show only in first row
-    //         status: index === 0 ? "Unsettled" : "",
-    //         product_id: product.product_id,
-    //         product_description: product.product_description,
-    //         unit_price: `₹${product.unit_price}`,
-    //         quantity: product.quantity,
-    //         total_price: product.line_total ? `₹${product.line_total}` : "N/A", // ✅ Handle undefined case
-    //       });
-    //     });
-    //   }
-    // });
     orders.forEach((order) => {
       const products = orderItems.filter((item) => item.order_id === order.order_id);
   
@@ -134,8 +96,6 @@ const PurchaseOrders = () => {
       }
     });
     
-    
-  
     return finalData;
   };
 
@@ -205,10 +165,11 @@ const PurchaseOrders = () => {
           Purchase Orders
         </h1>
 
-        {/* ✅ Pass filter functions to FilterCard */}
+        {/* Pass tableData to FilterCard for download functionality */}
         <FilterCard 
           onApplyFilters={handleApplyFilters} 
-          onResetFilters={handleResetFilters} 
+          onResetFilters={handleResetFilters}
+          tableData={searchFilteredData} 
         />
 
         {/* ✅ SearchBar now updates `searchQuery` */}
@@ -216,28 +177,28 @@ const PurchaseOrders = () => {
 
         {/* ✅ Pass the filtered & searched data to TableComponent */}
         <TableComponent 
-  title="Purchase Orders" 
-  columns={[
-    { key: "order_id", label: "Order ID" },
-    { key: "vendor_name", label: "Vendor Name" },
-    { key: "gstin", label: "GSTIN" },
-    { key: "order_date", label: "Order Date" },
-    { key: "balanceDue", label: "Balance Due" },
-    { key: "status", label: "Status" },
-    { key: "product_id", label: "Product ID" }, 
-    { key: "product_description", label: "Product Description" },
-    { key: "unit_price", label: "Unit Price" },
-    { key: "quantity", label: "Quantity" },
-    { key: "cgst_rate", label: "CGST Rate (%)" },
-    { key: "cgst_amount", label: "CGST Amount" },
-    { key: "sgst_rate", label: "SGST Rate (%)" },
-    { key: "sgst_amount", label: "SGST Amount" },
-    { key: "igst_rate", label: "IGST Rate (%)" },
-    { key: "igst_amount", label: "IGST Amount" },
-    { key: "total_price", label: "Total Price" },
-  ]} 
-  data={searchFilteredData} 
-/>
+          title="Purchase Orders" 
+          columns={[
+            { key: "order_id", label: "Order ID" },
+            { key: "vendor_name", label: "Vendor Name" },
+            { key: "gstin", label: "GSTIN" },
+            { key: "order_date", label: "Order Date" },
+            { key: "balanceDue", label: "Balance Due" },
+            { key: "status", label: "Status" },
+            { key: "product_id", label: "Product ID" }, 
+            { key: "product_description", label: "Product Description" },
+            { key: "unit_price", label: "Unit Price" },
+            { key: "quantity", label: "Quantity" },
+            { key: "cgst_rate", label: "CGST Rate (%)" },
+            { key: "cgst_amount", label: "CGST Amount" },
+            { key: "sgst_rate", label: "SGST Rate (%)" },
+            { key: "sgst_amount", label: "SGST Amount" },
+            { key: "igst_rate", label: "IGST Rate (%)" },
+            { key: "igst_amount", label: "IGST Amount" },
+            { key: "total_price", label: "Total Price" },
+          ]} 
+          data={searchFilteredData} 
+        />
       </main>
     </div>
   );
