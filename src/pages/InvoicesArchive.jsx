@@ -20,14 +20,17 @@ const InvoicesArchive = () => {
       // ✅ Fetch invoices (including pdf_url)
       const { data: invoices, error: invoicesError } = await supabase
         .from("invoices")
-        .select("order_id, invoice_no, order_date, total_amount, cgst_amount, sgst_amount, igst_amount, vendor_id, pdf_url");
+        .select(
+          "order_id, invoice_no, order_date, total_amount, cgst_amount, sgst_amount, igst_amount, vendor_id, pdf_url"
+        );
 
       // ✅ Fetch vendors (for vendor_name & gstin)
       const { data: vendors, error: vendorsError } = await supabase
         .from("vendors_db")
         .select("vendor_id, vendor_name, gstin");
 
-      if (invoicesError) console.error("Error fetching invoices:", invoicesError);
+      if (invoicesError)
+        console.error("Error fetching invoices:", invoicesError);
       if (vendorsError) console.error("Error fetching vendors:", vendorsError);
 
       setRawData({ invoices: invoices || [], vendors: vendors || [] });
@@ -43,7 +46,10 @@ const InvoicesArchive = () => {
     // ✅ Create a lookup for vendor_name and gstin
     const vendorMap = {};
     vendors.forEach((vendor) => {
-      vendorMap[vendor.vendor_id] = { vendor_name: vendor.vendor_name, gstin: vendor.gstin };
+      vendorMap[vendor.vendor_id] = {
+        vendor_name: vendor.vendor_name,
+        gstin: vendor.gstin,
+      };
     });
 
     return invoices.map((invoice) => ({
@@ -54,7 +60,8 @@ const InvoicesArchive = () => {
       cgst_amount: invoice.cgst_amount ? `₹${invoice.cgst_amount}` : "N/A",
       sgst_amount: invoice.sgst_amount ? `₹${invoice.sgst_amount}` : "N/A",
       igst_amount: invoice.igst_amount ? `₹${invoice.igst_amount}` : "N/A",
-      vendor_name: vendorMap[invoice.vendor_id]?.vendor_name || "Unknown Vendor",
+      vendor_name:
+        vendorMap[invoice.vendor_id]?.vendor_name || "Unknown Vendor",
       gstin: vendorMap[invoice.vendor_id]?.gstin || "N/A",
       pdf_url: invoice.pdf_url || null, // Keep the original pdf_url field
     }));
@@ -81,14 +88,23 @@ const InvoicesArchive = () => {
   }, [rawData]);
 
   // ✅ Apply Filters
-  const handleApplyFilters = ({ minBalance, maxBalance, startDate, endDate }) => {
+  const handleApplyFilters = ({
+    minBalance,
+    maxBalance,
+    startDate,
+    endDate,
+  }) => {
     let filtered = [...tableData];
 
     if (minBalance) {
-      filtered = filtered.filter((item) => parseFloat(item.total_amount.replace("₹", "")) >= minBalance);
+      filtered = filtered.filter(
+        (item) => parseFloat(item.total_amount.replace("₹", "")) >= minBalance
+      );
     }
     if (maxBalance) {
-      filtered = filtered.filter((item) => parseFloat(item.total_amount.replace("₹", "")) <= maxBalance);
+      filtered = filtered.filter(
+        (item) => parseFloat(item.total_amount.replace("₹", "")) <= maxBalance
+      );
     }
     if (startDate && endDate) {
       filtered = filtered.filter((item) => {
@@ -112,7 +128,8 @@ const InvoicesArchive = () => {
     return (
       String(invoice.order_id).toLowerCase().includes(lowerSearch) ||
       String(invoice.invoice_no).toLowerCase().includes(lowerSearch) ||
-      (invoice.vendor_name && invoice.vendor_name.toLowerCase().includes(lowerSearch))
+      (invoice.vendor_name &&
+        invoice.vendor_name.toLowerCase().includes(lowerSearch))
     );
   });
 
@@ -137,9 +154,9 @@ const InvoicesArchive = () => {
         </h1>
 
         {/* ✅ Pass filter functions to FilterCard */}
-        <FilterCard 
-          onApplyFilters={handleApplyFilters} 
-          onResetFilters={handleResetFilters} 
+        <FilterCard
+          onApplyFilters={handleApplyFilters}
+          onResetFilters={handleResetFilters}
         />
 
         {/* ✅ SearchBar now updates `searchQuery` */}
@@ -171,7 +188,7 @@ const InvoicesArchive = () => {
           <div className="bg-white rounded-lg shadow-lg w-full max-w-5xl h-5/6 flex flex-col">
             <div className="flex justify-between items-center p-4 border-b">
               <h2 className="text-xl font-semibold">Invoice PDF</h2>
-              <button 
+              <button
                 onClick={closePdfViewer}
                 className="text-gray-500 hover:text-gray-700"
               >
@@ -180,7 +197,7 @@ const InvoicesArchive = () => {
             </div>
             <div className="flex-grow p-2">
               <iframe
-                src={`https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(selectedPdf)}`}
+                src={selectedPdf} // ✅ Use direct preview link
                 className="w-full h-full border-0"
                 title="PDF Viewer"
               ></iframe>
