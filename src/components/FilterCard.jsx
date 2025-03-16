@@ -1,25 +1,16 @@
 import React, { useState, useEffect } from 'react';
 
-const FilterCard = ({ onApplyFilters, onResetFilters }) => {
+const FilterCard = ({ onApplyFilters, onResetFilters, tableData }) => {
   const [minBalance, setMinBalance] = useState('');
   const [maxBalance, setMaxBalance] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [showRangeWarning, setShowRangeWarning] = useState(false);
 
   useEffect(() => {
-    const end = new Date();
-    const start = new Date();
-    start.setDate(end.getDate() - 10); // ✅ Set default range to exactly 10 days
-
-    setStartDate(start.toISOString().split('T')[0]);
-    setEndDate(end.toISOString().split('T')[0]);
+    // Set only the end date to today by default
+    const today = new Date();
+    setEndDate(today.toISOString().split('T')[0]);
   }, []);
-
-  const calculateDateDifference = (start, end) => {
-    const diffTime = Math.abs(new Date(end) - new Date(start));
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  };
 
   const handleBalanceChange = (type, value) => {
     if (type === 'min') {
@@ -39,18 +30,6 @@ const FilterCard = ({ onApplyFilters, onResetFilters }) => {
   };
 
   const handleApplyFilters = () => {
-    const dateDiff = calculateDateDifference(startDate, endDate);
-
-    if (dateDiff < 10) {
-      alert("Date range should be at least 10 days");
-      return;
-    }
-
-    if (dateDiff > 10) {
-      setShowRangeWarning(true);
-      return;
-    }
-
     onApplyFilters({
       minBalance,
       maxBalance,
@@ -60,16 +39,41 @@ const FilterCard = ({ onApplyFilters, onResetFilters }) => {
   };
 
   const handleResetFilters = () => {
-    const end = new Date();
-    const start = new Date();
-    start.setDate(end.getDate() - 10); // ✅ Reset to exactly 10 days
-
+    // Only reset to today's date for end date
+    const today = new Date();
+    
     setMinBalance('');
     setMaxBalance('');
-    setStartDate(start.toISOString().split('T')[0]);
-    setEndDate(end.toISOString().split('T')[0]);
-    setShowRangeWarning(false);
+    setStartDate('');
+    setEndDate(today.toISOString().split('T')[0]);
     onResetFilters();
+  };
+
+  const downloadTableData = () => {
+    if (!tableData || tableData.length === 0) {
+      alert("No data available to download");
+      return;
+    }
+
+    // Convert data to CSV format
+    const headers = Object.keys(tableData[0]).join(',');
+    const csvRows = tableData.map(row => 
+      Object.values(row).map(value => 
+        typeof value === 'string' ? `"${value.replace(/"/g, '""')}"` : value
+      ).join(',')
+    );
+    const csvContent = [headers, ...csvRows].join('\n');
+
+    // Create a Blob and download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `invoice_data_${new Date().toLocaleDateString().replace(/\//g, '-')}.csv`);
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
@@ -138,46 +142,18 @@ const FilterCard = ({ onApplyFilters, onResetFilters }) => {
           Reset Filters
         </button>
         <button
+          onClick={downloadTableData}
+          className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 cursor-pointer transition-all ease-in-out"
+        >
+          Download Data
+        </button>
+        <button
           onClick={handleApplyFilters}
           className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 cursor-pointer transition-all ease-in-out"
         >
           Apply Filters
         </button>
       </div>
-
-      {showRangeWarning && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md">
-            <h3 className="text-lg font-semibold mb-4">Date Range Warning</h3>
-            <p className="mb-6">
-              Since the date range is greater than 10 days, we will provide you with
-              an Excel sheet. Would you like to continue?
-            </p>
-            <div className="flex justify-end gap-4">
-              <button
-                onClick={() => setShowRangeWarning(false)}
-                className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  setShowRangeWarning(false);
-                  onApplyFilters({
-                    minBalance,
-                    maxBalance,
-                    startDate,
-                    endDate
-                  });
-                }}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 cursor-pointer"
-              >
-                Continue Anyway
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

@@ -153,10 +153,11 @@ const InvoicesArchive = () => {
           Invoices Archive
         </h1>
 
-        {/* ✅ Pass filter functions to FilterCard */}
+        {/* Pass tableData to FilterCard for download functionality */}
         <FilterCard
           onApplyFilters={handleApplyFilters}
           onResetFilters={handleResetFilters}
+          tableData={searchFilteredData}
         />
 
         {/* ✅ SearchBar now updates `searchQuery` */}

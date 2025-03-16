@@ -75,6 +75,7 @@ const FlaggedForReview = () => {
         <FilterCard 
           onApplyFilters={handleApplyFilters} 
           onResetFilters={handleResetFilters} 
+          tableData={searchFilteredData}
         />
 
         {/* ✅ SearchBar now updates `searchQuery` */}
