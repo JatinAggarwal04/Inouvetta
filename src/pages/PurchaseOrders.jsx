@@ -196,7 +196,13 @@ const PurchaseOrders = () => {
             { key: "gstin", label: "GSTIN" },
             { key: "order_date", label: "Order Date" },
             { key: "balanceDue", label: "Balance Due" },
-            { key: "status", label: "Status" },
+            {
+              key: "status",
+              label: "Status",
+              render: (status) => (
+                <span className={getStatusStyle(status)}>{status}</span>
+              ),
+            },
             { key: "total_price", label: "Total Price" },
             { key: "product_id", label: "Product ID" }, 
             { key: "product_description", label: "Product Description" },

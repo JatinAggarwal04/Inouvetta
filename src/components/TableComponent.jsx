@@ -15,7 +15,9 @@ const TableComponent = ({
       case "rejected":
         return "bg-red-100 text-red-800"; // 🔴 Red for Rejected
       case "flagged for review":
-        return "bg-yellow-100 text-yellow-800"; // ⚠️ Yellow for Flagged
+        return "bg-yellow-100 text-yellow-800";
+      case "settled": // Corrected typo here
+        return "bg-green-100 text-green-800";  // ✅ Green for Settled
       default:
         return "bg-gray-100 text-gray-800"; // ⚪ Default for unknown statuses
     }
