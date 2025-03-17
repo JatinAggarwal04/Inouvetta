@@ -135,7 +135,7 @@ const Dashboard = () => {
         <FilterCard 
           onApplyFilters={handlePaymentFilters}
           onResetFilters={handleResetFilters}
-          tableData={searchFilteredData}
+          
         />
 
         {/* Graph Cards */}
