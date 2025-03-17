@@ -1,204 +1,215 @@
-import React, { useState, useEffect } from 'react';
-import Navbar from '../components/Navbar';
-import Sidebar from '../components/Sidebar';
-import FilterCard from '../components/FilterCard';
-import TableComponent from '../components/TableComponent';
-import SearchBar from '../components/SearchBar';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-} from "recharts";
+import React, { useState, useEffect } from "react";
+import Navbar from "../components/Navbar";
+import Sidebar from "../components/Sidebar";
+import FilterCard from "../components/FilterCard";
+import TableComponent from "../components/TableComponent";
+import SearchBar from "../components/SearchBar";
+import supabase from "../supabaseClient";
 
 const Dashboard = () => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [data, setData] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [tableData, setTableData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
+  const [rawData, setRawData] = useState({
+    invoices: [],
+    flagged: [],
+    vendors: [],
+  });
 
-  // Fetch PostgreSQL data
+  // ✅ Fetch raw data
+  const fetchDetails = async () => {
+    try {
+      // ✅ Fetch invoices (set status as "Approved")
+      const { data: invoices, error: invoicesError } = await supabase
+        .from("invoices")
+        .select("order_id, invoice_no, order_date, vendor_id, total_amount");
+
+      // ✅ Fetch flagged invoices (with status handling)
+      const { data: flagged, error: flaggedError } = await supabase
+        .from("flagged")
+        .select("order_id, invoice_id, invoice_date, vendor_id, status, total");
+
+      // ✅ Fetch vendors (get vendor_name & gstin)
+      const { data: vendors, error: vendorsError } = await supabase
+        .from("vendors_db")
+        .select("vendor_id, vendor_name, gstin");
+
+      if (invoicesError)
+        console.error("Error fetching invoices:", invoicesError);
+      if (flaggedError)
+        console.error("Error fetching flagged invoices:", flaggedError);
+      if (vendorsError) console.error("Error fetching vendors:", vendorsError);
+
+      setRawData({
+        invoices: invoices || [],
+        flagged: flagged || [],
+        vendors: vendors || [],
+      });
+    } catch (err) {
+      console.error("Unexpected error while fetching data:", err);
+    }
+  };
+
+  // ✅ Process and merge data
+  const generateTableData = () => {
+    const { invoices, flagged, vendors } = rawData;
+
+    // ✅ Create a lookup for vendor_name and gstin
+    const vendorMap = {};
+    vendors.forEach((vendor) => {
+      vendorMap[vendor.vendor_id] = {
+        vendor_name: vendor.vendor_name,
+        gstin: vendor.gstin,
+      };
+    });
+
+    const finalData = [];
+
+    // ✅ Process invoices (set as "Approved")
+    // ✅ Process invoices (set as "Approved")
+    if (invoices.length) {
+      invoices.forEach((invoice) => {
+        finalData.push({
+          order_id: invoice.order_id,
+          invoice_id: invoice.invoice_no,
+          invoice_date: invoice.order_date,
+          vendor_name:
+            vendorMap[invoice.vendor_id]?.vendor_name || "Unknown Vendor",
+          gstin: vendorMap[invoice.vendor_id]?.gstin || "N/A",
+          total: invoice.total_amount ? `₹${invoice.total_amount}` : "N/A", // ✅ Adds ₹ symbol
+          status: "Approved",
+        });
+      });
+    }
+
+    // ✅ Process flagged invoices (handle status conditions)
+    if (flagged.length) {
+      flagged.forEach((flaggedEntry) => {
+        finalData.push({
+          order_id: flaggedEntry.order_id,
+          invoice_id: flaggedEntry.invoice_id,
+          invoice_date: flaggedEntry.invoice_date,
+          vendor_name:
+            vendorMap[flaggedEntry.vendor_id]?.vendor_name || "Unknown Vendor",
+          gstin: vendorMap[flaggedEntry.vendor_id]?.gstin || "N/A",
+          total: flaggedEntry.total ? `₹${flaggedEntry.total}` : "N/A", // ✅ Adds ₹ symbol
+          status:
+            flaggedEntry.status === "Rejected"
+              ? "Rejected"
+              : "Flagged for review",
+        });
+      });
+    }
+
+    return finalData;
+  };
+
+  // ✅ Fetch data on component mount
   useEffect(() => {
     const fetchData = async () => {
-      try {
-        const response = await fetch('http://localhost:5000/api/invoices');
-        const result = await response.json();
-        setData(result);
-        setFilteredData(result); // Initialize filtered data
-      } catch (error) {
-        console.error('Error fetching invoices:', error);
-      }
+      console.log("Fetching dashboard details...");
+      await fetchDetails(); // Fetch raw data
     };
 
     fetchData();
   }, []);
 
-  const handlePaymentFilters = ({ minBalance, maxBalance, startDate, endDate }) => {
-    let filtered = [...data];
+  // ✅ Process data when rawData updates
+  useEffect(() => {
+    if (rawData.invoices.length > 0 || rawData.flagged.length > 0) {
+      const processedData = generateTableData();
+      console.log("Processed Data:", processedData);
+      setTableData(processedData);
+      setFilteredData(processedData);
+    }
+  }, [rawData]);
 
-    if (minBalance) {
-      filtered = filtered.filter(invoice => invoice.balanceDue >= minBalance);
-    }
-    if (maxBalance) {
-      filtered = filtered.filter(invoice => invoice.balanceDue <= maxBalance);
-    }
+  // ✅ Apply Filters
+  const handleApplyFilters = ({ startDate, endDate }) => {
+    let filtered = [...tableData];
+
     if (startDate && endDate) {
-      filtered = filtered.filter(invoice => {
-        const invoiceDate = new Date(invoice.dateReceived);
-        return invoiceDate >= new Date(startDate) && invoiceDate <= new Date(endDate);
+      filtered = filtered.filter((item) => {
+        const itemDate = new Date(item.invoice_date);
+        return itemDate >= new Date(startDate) && itemDate <= new Date(endDate);
       });
     }
 
     setFilteredData(filtered);
   };
 
+  // ✅ Reset Filters
   const handleResetFilters = () => {
-    setFilteredData(data);
+    setFilteredData(tableData);
   };
 
-  const handlePdfClick = (pdfUrl) => {
-    console.log('Opening PDF:', pdfUrl);
-  };
-
-  const columns = [
-    { key: 'invoiceId', label: 'Invoice ID' },
-    { key: 'vendorName', label: 'Vendor Name' },
-    { key: 'balanceDue', label: 'Balance Due' },
-    { key: 'dateReceived', label: 'Date' },
-    { key: 'timeReceived', label: 'Time Received' },
-    { key: 'status', label: 'Status' },
-    { key: 'pdfUrl', label: 'Invoice' }
-  ];
-
-  // Process chart data
-  const processChartData = () => {
-    const groupedData = {};
-
-    filteredData.forEach((invoice) => {
-      const date = invoice.dateReceived;
-      if (!groupedData[date]) {
-        groupedData[date] = { date, received: 0, approved: 0, rejected: 0 };
-      }
-
-      groupedData[date].received += 1;
-      if (invoice.status === 'Approved') {
-        groupedData[date].approved += 1;
-      } else if (invoice.status === 'Rejected') {
-        groupedData[date].rejected += 1;
-      }
-    });
-
-    return Object.values(groupedData);
-  };
-
-  const chartData = processChartData();
-
-  const CustomTooltip = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-white/90 backdrop-blur-sm p-4 shadow-lg rounded-lg border">
-          <p className="font-semibold border-b pb-2 mb-2">{label}</p>
-          {payload.map((entry, index) => (
-            <p key={index} className="flex items-center gap-2 py-1">
-              <span className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }}></span>
-              <span style={{ color: entry.color }} className="font-medium">
-                {entry.value} {entry.name}
-              </span>
-            </p>
-          ))}
-        </div>
-      );
+  const getStatusStyle = (status) => {
+    switch (status) {
+      case "Approved":
+        return "text-green-600 font-semibold"; // ✅ Green for Approved
+      case "Rejected":
+        return "text-red-600 font-semibold"; // 🔴 Red for Rejected
+      case "Flagged for review":
+        return "text-yellow-600 font-semibold"; // 🟡 Yellow for Flagged
+      default:
+        return "text-gray-600"; // Default styling
     }
-    return null;
   };
 
-  const chartProps = {
-    isAnimationActive: true,
-    animationBegin: 0,
-    animationDuration: 800,
-    animationEasing: "linear",
-  };
+  // ✅ Apply Search
+  const searchFilteredData = filteredData.filter((entry) => {
+    if (!searchQuery) return true;
+
+    const lowerSearch = searchQuery.toLowerCase();
+    return (
+      (entry.invoice_id &&
+        entry.invoice_id.toLowerCase().includes(lowerSearch)) || // For flagged invoices
+      (entry.invoice_no &&
+        entry.invoice_no.toLowerCase().includes(lowerSearch)) || // For approved invoices
+      (entry.vendor_name &&
+        entry.vendor_name.toLowerCase().includes(lowerSearch))
+    );
+  });
 
   return (
     <div className="min-h-screen bg-[#F2F2F2]">
       <Navbar />
       <Sidebar />
-      
+
       <main className="ml-[280px] pt-24 px-6">
         <h1 className="text-4xl font-serif font-bold text-gray-800 mb-8">
           Dashboard
         </h1>
 
-        {/* Filter Card Component */}
-        <FilterCard 
-          onApplyFilters={handlePaymentFilters}
+        {/* ✅ Filter Card */}
+        <FilterCard
+          onApplyFilters={handleApplyFilters}
           onResetFilters={handleResetFilters}
-          
+          tableData={searchFilteredData}
         />
 
-        {/* Graph Cards */}
-        <div className="grid grid-cols-3 gap-6">
-          <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow duration-200">
-            <h2 className="text-xl font-semibold mb-4">Invoices Received</h2>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="date" tick={{ fill: "#666" }} />
-                  <YAxis tick={{ fill: "#666" }} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Bar name="Received" dataKey="received" fill="#2563eb" radius={[4, 4, 0, 0]} {...chartProps} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow duration-200">
-            <h2 className="text-xl font-semibold mb-4">Invoices Approved</h2>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="date" tick={{ fill: "#666" }} />
-                  <YAxis tick={{ fill: "#666" }} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Bar name="Approved" dataKey="approved" fill="#16a34a" radius={[4, 4, 0, 0]} {...chartProps} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow duration-200">
-            <h2 className="text-xl font-semibold mb-4">Invoices Rejected</h2>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="date" tick={{ fill: "#666" }} />
-                  <YAxis tick={{ fill: "#666" }} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Bar name="Rejected" dataKey="rejected" fill="#dc2626" radius={[4, 4, 0, 0]} {...chartProps} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-
-        {/* Search Bar Component */}
+        {/* ✅ SearchBar */}
         <SearchBar onSearch={setSearchQuery} />
 
-        {/* Table Component with PostgreSQL data */}
-        <TableComponent 
-          title="Invoices"
-          columns={columns}
-          data={filteredData.filter(
-            (invoice) =>
-              invoice.invoiceId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              invoice.vendorName.toLowerCase().includes(searchQuery.toLowerCase())
-          )}
-          onPdfClick={handlePdfClick}
+        {/* ✅ TableComponent for Dashboard */}
+        <TableComponent
+          title="Dashboard Activity"
+          columns={[
+            { key: "order_id", label: "Order ID" },
+            { key: "invoice_id", label: "Invoice ID" },
+            { key: "vendor_name", label: "Vendor Name" },
+            { key: "gstin", label: "GSTIN" },
+            { key: "invoice_date", label: "Invoice Date" },
+            { key: "total", label: "Total Amount" }, // ✅ Added total column
+            {
+              key: "status",
+              label: "Status",
+              render: (status) => (
+                <span className={getStatusStyle(status)}>{status}</span>
+              ),
+            },
+          ]}
+          data={searchFilteredData}
         />
       </main>
     </div>
