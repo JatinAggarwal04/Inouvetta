@@ -20,7 +20,7 @@ const PurchaseOrders = () => {
 
       // ✅ Fetch purchase order items (products per order_id)
       const { data: orderItems, error: itemsError } = await supabase.from("purchase_order_item").select(
-        "order_id, product_id, product_description, unit_price, quantity, line_total, cgst_rate, cgst_amount,sgst_rate, sgst_amount, igst_rate, igst_amount"
+        "order_id, product_id, product_description, unit_price, quantity, line_total, cgst_rate, sgst_rate, igst_rate"
       );
 
       // ✅ Fetch vendors (replace vendor_id with vendor_name & gstin)
@@ -65,11 +65,8 @@ const PurchaseOrders = () => {
           quantity: "No Products",
           total_price: "No Products",
           cgst_rate: "N/A",
-          cgst_amount: "N/A",
           sgst_rate: "N/A",
-          sgst_amount: "N/A",
           igst_rate: "N/A",
-          igst_amount: "N/A",
         });
       } else {
         products.forEach((product, index) => {
@@ -86,11 +83,8 @@ const PurchaseOrders = () => {
             quantity: product.quantity,
             total_price: product.line_total ? `₹${product.line_total}` : "N/A",
             cgst_rate: product.cgst_rate ? `${product.cgst_rate}%` : "N/A",
-            cgst_amount: product.cgst_amount ? `₹${product.cgst_amount}` : "N/A",
             sgst_rate: product.sgst_rate ? `${product.sgst_rate}%` : "N/A",
-            sgst_amount: product.sgst_amount ? `₹${product.sgst_amount}` : "N/A",
             igst_rate: product.igst_rate ? `${product.igst_rate}%` : "N/A",
-            igst_amount: product.igst_amount ? `₹${product.igst_amount}` : "N/A",
           });
         });
       }
