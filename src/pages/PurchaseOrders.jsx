@@ -190,11 +190,8 @@ const PurchaseOrders = () => {
             { key: "unit_price", label: "Unit Price" },
             { key: "quantity", label: "Quantity" },
             { key: "cgst_rate", label: "CGST Rate (%)" },
-            { key: "cgst_amount", label: "CGST Amount" },
             { key: "sgst_rate", label: "SGST Rate (%)" },
-            { key: "sgst_amount", label: "SGST Amount" },
             { key: "igst_rate", label: "IGST Rate (%)" },
-            { key: "igst_amount", label: "IGST Amount" },
             { key: "total_price", label: "Total Price" },
           ]} 
           data={searchFilteredData} 
