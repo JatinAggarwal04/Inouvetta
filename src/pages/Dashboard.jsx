@@ -125,16 +125,32 @@ const Dashboard = () => {
   }, [rawData]);
 
   // ✅ Apply Filters
-  const handleApplyFilters = ({ startDate, endDate }) => {
+  const handleApplyFilters = ({ minBalance, maxBalance, startDate, endDate }) => {
     let filtered = [...tableData];
-
+  
+    // ✅ Filter by total (min balance & max balance)
+    if (minBalance) {
+      filtered = filtered.filter((item) => {
+        const totalValue = parseFloat(item.total.replace("₹", "").replace(",", ""));
+        return totalValue >= parseFloat(minBalance);
+      });
+    }
+  
+    if (maxBalance) {
+      filtered = filtered.filter((item) => {
+        const totalValue = parseFloat(item.total.replace("₹", "").replace(",", ""));
+        return totalValue <= parseFloat(maxBalance);
+      });
+    }
+  
+    // ✅ Filter by date range
     if (startDate && endDate) {
       filtered = filtered.filter((item) => {
         const itemDate = new Date(item.invoice_date);
         return itemDate >= new Date(startDate) && itemDate <= new Date(endDate);
       });
     }
-
+  
     setFilteredData(filtered);
   };
 

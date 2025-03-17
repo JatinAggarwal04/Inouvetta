@@ -82,7 +82,7 @@ const FilterCard = ({ onApplyFilters, onResetFilters, tableData }) => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Min Balance
+            Min Amount
           </label>
           <input
             type="number"
@@ -96,7 +96,7 @@ const FilterCard = ({ onApplyFilters, onResetFilters, tableData }) => {
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Max Balance
+            Max Amount
           </label>
           <input
             type="number"
