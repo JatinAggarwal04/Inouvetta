@@ -10,7 +10,12 @@ const PurchaseOrders = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [tableData, setTableData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
-  const [rawData, setRawData] = useState({ orders: [], orderItems: [], vendors: [] });
+  const [rawData, setRawData] = useState({
+    orders: [],
+    orderItems: [],
+    vendors: [],
+    invoices: [], // ✅ Fetch invoices to determine status
+  });
 
   // ✅ Fetch raw data
   const fetchDetails = async () => {
@@ -18,19 +23,28 @@ const PurchaseOrders = () => {
       // ✅ Fetch purchase orders
       const { data: orders, error: ordersError } = await supabase.from("purchase_orders").select("*");
 
-      // ✅ Fetch purchase order items (products per order_id)
+      // ✅ Fetch purchase order items
       const { data: orderItems, error: itemsError } = await supabase.from("purchase_order_item").select(
         "order_id, product_id, product_description, unit_price, quantity, line_total, cgst_rate, sgst_rate, igst_rate"
       );
 
-      // ✅ Fetch vendors (replace vendor_id with vendor_name & gstin)
+      // ✅ Fetch vendors
       const { data: vendors, error: vendorsError } = await supabase.from("vendors_db").select("vendor_id, vendor_name, gstin");
+
+      // ✅ Fetch invoices to check for settlements
+      const { data: invoices, error: invoicesError } = await supabase.from("invoices").select("order_id");
 
       if (ordersError) console.error("Error fetching purchase orders:", ordersError);
       if (itemsError) console.error("Error fetching order items:", itemsError);
       if (vendorsError) console.error("Error fetching vendors:", vendorsError);
+      if (invoicesError) console.error("Error fetching invoices:", invoicesError);
 
-      setRawData({ orders: orders || [], orderItems: orderItems || [], vendors: vendors || [] });
+      setRawData({
+        orders: orders || [],
+        orderItems: orderItems || [],
+        vendors: vendors || [],
+        invoices: invoices || [], // ✅ Store invoices for status checking
+      });
     } catch (err) {
       console.error("Unexpected error while fetching data:", err);
     }
@@ -38,7 +52,7 @@ const PurchaseOrders = () => {
 
   // ✅ Process and merge data
   const generateTableData = () => {
-    const { orders, orderItems, vendors } = rawData;
+    const { orders, orderItems, vendors, invoices } = rawData;
   
     // ✅ Create a lookup for vendor_name and gstin
     const vendorMap = {};
@@ -46,10 +60,14 @@ const PurchaseOrders = () => {
       vendorMap[vendor.vendor_id] = { vendor_name: vendor.vendor_name, gstin: vendor.gstin };
     });
   
+    // ✅ Create a lookup for settled orders
+    const settledOrders = new Set(invoices.map((invoice) => invoice.order_id));
+  
     const finalData = [];
   
     orders.forEach((order) => {
       const products = orderItems.filter((item) => item.order_id === order.order_id);
+      const status = settledOrders.has(order.order_id) ? "Settled" : "Unsettled"; // ✅ Check if order is settled
   
       if (products.length === 0) {
         finalData.push({
@@ -57,8 +75,8 @@ const PurchaseOrders = () => {
           vendor_name: vendorMap[order.vendor_id]?.vendor_name || "Unknown Vendor",
           gstin: vendorMap[order.vendor_id]?.gstin || "N/A",
           order_date: order.order_date,
-          balanceDue: order.total_amount,
-          status: "Unsettled",
+          balanceDue: order.total_amount ? `₹${order.total_amount}` : "N/A", // ✅ Directly from total_amount
+          status: status,
           product_id: "No Products",
           product_description: "No Products",
           unit_price: "No Products",
@@ -76,7 +94,7 @@ const PurchaseOrders = () => {
             gstin: index === 0 ? vendorMap[order.vendor_id]?.gstin || "N/A" : "",
             order_date: index === 0 ? order.order_date : "",
             balanceDue: index === 0 ? order.total_amount : "",
-            status: index === 0 ? "Unsettled" : "",
+            status: index === 0 ? status : "",
             product_id: product.product_id,
             product_description: product.product_description,
             unit_price: product.unit_price ? `₹${product.unit_price}` : "N/A",
@@ -89,7 +107,7 @@ const PurchaseOrders = () => {
         });
       }
     });
-    
+  
     return finalData;
   };
 
@@ -116,20 +134,22 @@ const PurchaseOrders = () => {
   // ✅ Apply Filters
   const handleApplyFilters = ({ minBalance, maxBalance, startDate, endDate }) => {
     let filtered = [...tableData];
-
+  
     if (minBalance) {
       filtered = filtered.filter((item) => item.balanceDue >= parseFloat(minBalance));
     }
+  
     if (maxBalance) {
       filtered = filtered.filter((item) => item.balanceDue <= parseFloat(maxBalance));
     }
+  
     if (startDate && endDate) {
       filtered = filtered.filter((item) => {
         const itemDate = new Date(item.order_date);
         return itemDate >= new Date(startDate) && itemDate <= new Date(endDate);
       });
     }
-
+  
     setFilteredData(filtered);
   };
 
@@ -155,21 +175,19 @@ const PurchaseOrders = () => {
       <Sidebar />
 
       <main className="ml-[280px] pt-24 px-6">
-        <h1 className="text-4xl font-serif font-bold text-gray-800 mb-8">
-          Purchase Orders
-        </h1>
+        <h1 className="text-4xl font-serif font-bold text-gray-800 mb-8">Purchase Orders</h1>
 
-        {/* Pass tableData to FilterCard for download functionality */}
+        {/* ✅ FilterCard */}
         <FilterCard 
           onApplyFilters={handleApplyFilters} 
           onResetFilters={handleResetFilters}
           tableData={searchFilteredData} 
         />
 
-        {/* ✅ SearchBar now updates `searchQuery` */}
+        {/* ✅ SearchBar */}
         <SearchBar onSearch={setSearchQuery} />
 
-        {/* ✅ Pass the filtered & searched data to TableComponent */}
+        {/* ✅ TableComponent */}
         <TableComponent 
           title="Purchase Orders" 
           columns={[
@@ -179,6 +197,7 @@ const PurchaseOrders = () => {
             { key: "order_date", label: "Order Date" },
             { key: "balanceDue", label: "Balance Due" },
             { key: "status", label: "Status" },
+            { key: "total_price", label: "Total Price" },
             { key: "product_id", label: "Product ID" }, 
             { key: "product_description", label: "Product Description" },
             { key: "unit_price", label: "Unit Price" },
@@ -186,7 +205,6 @@ const PurchaseOrders = () => {
             { key: "cgst_rate", label: "CGST Rate (%)" },
             { key: "sgst_rate", label: "SGST Rate (%)" },
             { key: "igst_rate", label: "IGST Rate (%)" },
-            { key: "total_price", label: "Total Price" },
           ]} 
           data={searchFilteredData} 
         />
