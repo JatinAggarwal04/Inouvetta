@@ -135,35 +135,90 @@ const PurchaseOrders = () => {
   }, [rawData]);
 
   // ✅ Apply Filters
-  const handleApplyFilters = ({ minBalance, maxBalance, startDate, endDate }) => {
-    let filtered = [...tableData];
-  
+  // ✅ Apply Filters
+const handleApplyFilters = ({ minBalance, maxBalance, startDate, endDate }) => {
+  // First, filter only the purchase orders that match the criteria
+  const filteredOrders = rawData.orders.filter((order) => {
+    let matchesFilter = true;
+    
     if (minBalance) {
-      filtered = filtered.filter((item) => {
-        // Convert string balance (e.g., "₹1000") to number for comparison
-        const balance = item.balanceDue ? parseFloat(item.balanceDue.replace('₹', '')) : 0;
-        return balance >= parseFloat(minBalance);
-      });
+      matchesFilter = matchesFilter && order.total_amount >= parseFloat(minBalance);
     }
-  
+    
     if (maxBalance) {
-      filtered = filtered.filter((item) => {
-        // Convert string balance (e.g., "₹1000") to number for comparison
-        const balance = item.balanceDue ? parseFloat(item.balanceDue.replace('₹', '')) : 0;
-        return balance <= parseFloat(maxBalance);
-      });
+      matchesFilter = matchesFilter && order.total_amount <= parseFloat(maxBalance);
     }
-  
+    
     if (startDate && endDate) {
-      filtered = filtered.filter((item) => {
-        if (!item.order_date) return false;
-        const itemDate = new Date(item.order_date);
-        return itemDate >= new Date(startDate) && itemDate <= new Date(endDate);
+      const orderDate = new Date(order.order_date);
+      matchesFilter = matchesFilter && orderDate >= new Date(startDate) && orderDate <= new Date(endDate);
+    }
+    
+    return matchesFilter;
+  });
+
+  // Get the filtered order IDs
+  const filteredOrderIds = new Set(filteredOrders.map(order => order.order_id));
+  
+  // Now regenerate the table data but only for the filtered orders
+  const { orderItems, vendors, invoices } = rawData;
+  
+  // Create a lookup for vendor_name and gstin
+  const vendorMap = {};
+  vendors.forEach((vendor) => {
+    vendorMap[vendor.vendor_id] = { vendor_name: vendor.vendor_name, gstin: vendor.gstin };
+  });
+
+  // Create a lookup for settled orders
+  const settledOrders = new Set(invoices.map((invoice) => invoice.order_id));
+
+  const filteredData = [];
+
+  filteredOrders.forEach((order) => {
+    const products = orderItems.filter((item) => item.order_id === order.order_id);
+    const status = settledOrders.has(order.order_id) ? "Settled" : "Unsettled";
+
+    if (products.length === 0) {
+      filteredData.push({
+        order_id: order.order_id,
+        vendor_name: vendorMap[order.vendor_id]?.vendor_name || "Unknown Vendor",
+        gstin: vendorMap[order.vendor_id]?.gstin || "N/A",
+        order_date: order.order_date,
+        balanceDue: order.total_amount ? `₹${order.total_amount}` : "N/A",
+        status: status,
+        product_id: "No Products",
+        product_description: "No Products",
+        unit_price: "No Products",
+        quantity: "No Products",
+        total_price: "No Products",
+        cgst_rate: "N/A",
+        sgst_rate: "N/A",
+        igst_rate: "N/A",
+      });
+    } else {
+      products.forEach((product, index) => {
+        filteredData.push({
+          order_id: index === 0 ? order.order_id : "",
+          vendor_name: index === 0 ? vendorMap[order.vendor_id]?.vendor_name || "Unknown Vendor" : "",
+          gstin: index === 0 ? vendorMap[order.vendor_id]?.gstin || "N/A" : "",
+          order_date: index === 0 ? order.order_date : "",
+          balanceDue: index === 0 ? order.total_amount : "",
+          status: index === 0 ? status : "",
+          product_id: product.product_id,
+          product_description: product.product_description,
+          unit_price: product.unit_price ? `₹${product.unit_price}` : "N/A",
+          quantity: product.quantity,
+          total_price: product.line_total ? `₹${product.line_total}` : "N/A",
+          cgst_rate: product.cgst_rate ? `${product.cgst_rate}%` : "N/A",
+          sgst_rate: product.sgst_rate ? `${product.sgst_rate}%` : "N/A",
+          igst_rate: product.igst_rate ? `${product.igst_rate}%` : "N/A",
+        });
       });
     }
-  
-    setFilteredData(filtered);
-  };
+  });
+
+  setFilteredData(filteredData);
+};
 
   // ✅ Reset Filters
   const handleResetFilters = () => {
