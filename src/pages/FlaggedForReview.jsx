@@ -22,22 +22,18 @@ const FlaggedForReview = () => {
     const fetchUserDetails = async () => {
       const storedUser = localStorage.getItem("user");
       if (!storedUser) return;
-      
       const { id } = JSON.parse(storedUser);
-
       const { data, error } = await supabase
         .from("users")
         .select("level")
         .eq("id", id)
         .single();
-
       if (error) {
         console.error("Error fetching user level:", error);
       } else {
         setUserLevel(data.level);
       }
     };
-
     fetchUserDetails();
   }, []);
 
@@ -67,6 +63,14 @@ const FlaggedForReview = () => {
 
       // Filter out approved and rejected invoices
       mergedData = mergedData?.filter((invoice) => invoice.status !== "Rejected" && invoice.status !== "Approved");
+      
+      // Sort by invoice_date (newest to oldest)
+      mergedData?.sort((a, b) => {
+        const dateA = new Date(a.invoice_date);
+        const dateB = new Date(b.invoice_date);
+        return dateB - dateA; // For descending order (newest first)
+        // Use return dateA - dateB; for ascending order (oldest first)
+      });
 
       setTableData(mergedData || []);
       setFilteredData(mergedData || []);
@@ -186,12 +190,10 @@ const FlaggedForReview = () => {
     <div className="min-h-screen bg-[#F2F2F2]">
       <Navbar />
       <Sidebar />
-
       <main className="ml-[280px] pt-24 px-6">
         <h1 className="text-4xl font-serif font-bold text-gray-800 mb-8">
           Flagged for Review
         </h1>
-
         <FilterCard
           onApplyFilters={({ startDate, endDate }) => {
             let filtered = [...tableData];
@@ -206,9 +208,7 @@ const FlaggedForReview = () => {
           onResetFilters={() => setFilteredData(tableData)}
           tableData={filteredData}
         />
-
         <SearchBar onSearch={setSearchQuery} />
-
         <TableComponent
           title="Flagged Invoices"
           columns={[
@@ -223,18 +223,15 @@ const FlaggedForReview = () => {
               render: (row) => {
                 let urgencyColor = "bg-green-100 text-green-700 border border-green-400"; // Default: No Urgency (Green)
                 let urgencyText = "No Urgency"; // Default text
-            
                 if (row.urgency !== null) {
                   const urgencyValue = parseInt(row.urgency, 10);
                   urgencyText = `${urgencyValue} days`;
-            
                   if (urgencyValue < 10) {
                     urgencyColor = "bg-red-100 text-red-700 border border-red-400"; // High urgency (Red)
                   } else {
                     urgencyColor = "bg-yellow-100 text-yellow-700 border border-yellow-400"; // Medium urgency (Yellow)
                   }
                 }
-            
                 return (
                   <span className={`px-3 py-1 rounded-lg text-sm font-medium ${urgencyColor} shadow-sm`}>
                     {urgencyText}
@@ -289,7 +286,6 @@ const FlaggedForReview = () => {
           onPdfClick={handlePdfClick}
         />
       </main>
-
       {/* Confirmation Modal */}
       {showConfirmation && (
         <div className="fixed inset-0 flex items-center justify-center z-50">
@@ -337,7 +333,6 @@ const FlaggedForReview = () => {
           </div>
         </div>
       )}
-
       {/* PDF Viewer Modal */}
       {selectedPdf && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">

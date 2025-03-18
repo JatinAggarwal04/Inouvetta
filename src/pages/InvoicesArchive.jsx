@@ -47,58 +47,65 @@ const InvoicesArchive = () => {
 
   // ✅ Fetch raw data (Invoices + Vendors)
   const fetchDetails = async () => {
-    if (!isAuthenticated) return;
-    
-    try {
-      // ✅ Fetch invoices (including pdf_url)
-      const { data: invoices, error: invoicesError } = await supabase
-        .from("invoices")
-        .select(
-          "order_id, invoice_no, order_date, total_amount, cgst_amount, sgst_amount, igst_amount, vendor_id, pdf_url"
-        );
+  if (!isAuthenticated) return;
 
-      // ✅ Fetch vendors (for vendor_name & gstin)
-      const { data: vendors, error: vendorsError } = await supabase
-        .from("vendors_db")
-        .select("vendor_id, vendor_name, gstin");
+  try {
+    // ✅ Fetch invoices, including urgency column
+    const { data: invoices, error: invoicesError } = await supabase
+      .from("invoices")
+      .select(
+        "order_id, invoice_no, order_date, total_amount, cgst_amount, sgst_amount, igst_amount, vendor_id, pdf_url, urgency"
+      );
 
-      if (invoicesError)
-        console.error("Error fetching invoices:", invoicesError);
-      if (vendorsError) console.error("Error fetching vendors:", vendorsError);
+    // ✅ Fetch vendors for vendor_name & gstin
+    const { data: vendors, error: vendorsError } = await supabase
+      .from("vendors_db")
+      .select("vendor_id, vendor_name, gstin");
 
-      setRawData({ invoices: invoices || [], vendors: vendors || [] });
-    } catch (err) {
-      console.error("Unexpected error while fetching data:", err);
-    }
-  };
+    if (invoicesError) console.error("Error fetching invoices:", invoicesError);
+    if (vendorsError) console.error("Error fetching vendors:", vendorsError);
+
+    setRawData({ invoices: invoices || [], vendors: vendors || [] });
+  } catch (err) {
+    console.error("Unexpected error while fetching data:", err);
+  }
+};
 
   // ✅ Process and merge data
-  const generateTableData = () => {
-    const { invoices, vendors } = rawData;
+  // ✅ Process and merge data
+const generateTableData = () => {
+  const { invoices, vendors } = rawData;
+  // ✅ Create a lookup for vendor_name and gstin
+  const vendorMap = {};
+  vendors.forEach((vendor) => {
+    vendorMap[vendor.vendor_id] = {
+      vendor_name: vendor.vendor_name,
+      gstin: vendor.gstin,
+    };
+  });
 
-    // ✅ Create a lookup for vendor_name and gstin
-    const vendorMap = {};
-    vendors.forEach((vendor) => {
-      vendorMap[vendor.vendor_id] = {
-        vendor_name: vendor.vendor_name,
-        gstin: vendor.gstin,
-      };
-    });
-
-    return invoices.map((invoice) => ({
-      order_id: invoice.order_id,
-      invoice_no: invoice.invoice_no,
-      order_date: invoice.order_date,
-      total_amount: invoice.total_amount ? `₹${invoice.total_amount}` : "N/A",
-      cgst_amount: invoice.cgst_amount ? `₹${invoice.cgst_amount}` : "N/A",
-      sgst_amount: invoice.sgst_amount ? `₹${invoice.sgst_amount}` : "N/A",
-      igst_amount: invoice.igst_amount ? `₹${invoice.igst_amount}` : "N/A",
-      vendor_name:
-        vendorMap[invoice.vendor_id]?.vendor_name || "Unknown Vendor",
-      gstin: vendorMap[invoice.vendor_id]?.gstin || "N/A",
-      pdf_url: invoice.pdf_url || null, // Keep the original pdf_url field
-    }));
-  };
+  const processedData = invoices.map((invoice) => ({
+    order_id: invoice.order_id,
+    invoice_no: invoice.invoice_no,
+    order_date: invoice.order_date,
+    total_amount: invoice.total_amount ? `₹${invoice.total_amount}` : "N/A",
+    cgst_amount: invoice.cgst_amount ? `₹${invoice.cgst_amount}` : "N/A",
+    sgst_amount: invoice.sgst_amount ? `₹${invoice.sgst_amount}` : "N/A",
+    igst_amount: invoice.igst_amount ? `₹${invoice.igst_amount}` : "N/A",
+    vendor_name: vendorMap[invoice.vendor_id]?.vendor_name || "Unknown Vendor",
+    gstin: vendorMap[invoice.vendor_id]?.gstin || "N/A",
+    pdf_url: invoice.pdf_url || null, // Keep the original pdf_url field
+    urgency: invoice.urgency, // ✅ Include urgency from database
+  }));
+  
+  // Sort processedData by order_date (newest to oldest)
+  return processedData.sort((a, b) => {
+    const dateA = new Date(a.order_date);
+    const dateB = new Date(b.order_date);
+    return dateB - dateA; // For descending order (newest first)
+    // Use return dateA - dateB; for ascending order (oldest first)
+  });
+};
 
   // ✅ Fetch data when authenticated
   useEffect(() => {
@@ -272,6 +279,31 @@ const InvoicesArchive = () => {
             { key: "vendor_name", label: "Vendor Name" },
             { key: "gstin", label: "GSTIN" },
             { key: "order_date", label: "Order Date" },
+            {
+              key: "urgency",
+              label: "Urgency",
+              render: (row) => {
+                let urgencyColor = "bg-green-100 text-green-700 border border-green-400"; // Default: No Urgency (Green)
+                let urgencyText = "No Urgency"; // Default text
+            
+                if (row.urgency !== null) {
+                  const urgencyValue = parseInt(row.urgency, 10);
+                  urgencyText = `${urgencyValue} days`;
+            
+                  if (urgencyValue < 10) {
+                    urgencyColor = "bg-red-100 text-red-700 border border-red-400"; // High urgency (Red)
+                  } else {
+                    urgencyColor = "bg-yellow-100 text-yellow-700 border border-yellow-400"; // Medium urgency (Yellow)
+                  }
+                }
+            
+                return (
+                  <span className={`px-3 py-1 rounded-lg text-sm font-medium ${urgencyColor} shadow-sm`}>
+                    {urgencyText}
+                  </span>
+                );
+              },
+            },
             { key: "total_amount", label: "Total Amount" },
             { key: "cgst_amount", label: "CGST Amount" },
             { key: "sgst_amount", label: "SGST Amount" },
