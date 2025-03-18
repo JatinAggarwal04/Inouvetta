@@ -83,23 +83,27 @@ const Dashboard = () => {
     }
 
     // ✅ Process flagged invoices (handle status conditions)
-    if (flagged.length) {
-      flagged.forEach((flaggedEntry) => {
-        finalData.push({
-          order_id: flaggedEntry.order_id,
-          invoice_id: flaggedEntry.invoice_id,
-          invoice_date: flaggedEntry.invoice_date,
-          vendor_name:
-            vendorMap[flaggedEntry.vendor_id]?.vendor_name || "Unknown Vendor",
-          gstin: vendorMap[flaggedEntry.vendor_id]?.gstin || "N/A",
-          total: flaggedEntry.total_amount ? `₹${flaggedEntry.total_amount}` : "N/A", // ✅ Adds ₹ symbol
-          status:
-            flaggedEntry.status === "Rejected"
-              ? "Rejected"
-              : "Flagged for review",
-        });
-      });
-    }
+    // ✅ Process flagged invoices (handle status conditions)
+if (flagged.length) {
+  flagged.forEach((flaggedEntry) => {
+    // Skip flagged entries with "Approved" status
+    if (flaggedEntry.status === "Approved") return;
+    
+    finalData.push({
+      order_id: flaggedEntry.order_id,
+      invoice_id: flaggedEntry.invoice_id,
+      invoice_date: flaggedEntry.invoice_date,
+      vendor_name:
+        vendorMap[flaggedEntry.vendor_id]?.vendor_name || "Unknown Vendor",
+      gstin: vendorMap[flaggedEntry.vendor_id]?.gstin || "N/A",
+      total: flaggedEntry.total_amount ? `₹${flaggedEntry.total_amount}` : "N/A",
+      status:
+        flaggedEntry.status === "Rejected"
+          ? "Rejected"
+          : "Flagged for review",
+    });
+  });
+}
 
     return finalData;
   };
