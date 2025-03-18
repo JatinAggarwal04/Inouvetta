@@ -5,7 +5,107 @@ import { Analytics } from "@vercel/analytics/react";
 import InvoicesArchive from "./pages/InvoicesArchive";
 import FlaggedForReview from "./pages/FlaggedForReview";
 import PurchaseOrders from "./pages/PurchaseOrders";
-import Login from "./pages/Login"; // Make sure this path is correct
+import Login from "./pages/Login";
+
+// Loading Spinner Component with smaller radius and blue color
+const LoadingSpinner = () => {
+  return (
+    <div className="fixed inset-0 flex items-center justify-center z-50">
+      <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500"></div>
+    </div>
+  );
+};
+
+// Modified page components to include loading spinner
+const DashboardWithLoading = () => {
+  const [isLoading, setIsLoading] = useState(true);
+  
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, []);
+  
+  return (
+    <>
+      {isLoading && <LoadingSpinner />}
+      <Dashboard />
+    </>
+  );
+};
+
+const InvoicesArchiveWithLoading = () => {
+  const [isLoading, setIsLoading] = useState(true);
+  
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, []);
+  
+  return (
+    <>
+      {isLoading && <LoadingSpinner />}
+      <InvoicesArchive />
+    </>
+  );
+};
+
+const FlaggedForReviewWithLoading = () => {
+  const [isLoading, setIsLoading] = useState(true);
+  
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, []);
+  
+  return (
+    <>
+      {isLoading && <LoadingSpinner />}
+      <FlaggedForReview />
+    </>
+  );
+};
+
+const PurchaseOrdersWithLoading = () => {
+  const [isLoading, setIsLoading] = useState(true);
+  
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, []);
+  
+  return (
+    <>
+      {isLoading && <LoadingSpinner />}
+      <PurchaseOrders />
+    </>
+  );
+};
+
+const LoginWithLoading = () => {
+  const [isLoading, setIsLoading] = useState(true);
+  
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, []);
+  
+  return (
+    <>
+      {isLoading && <LoadingSpinner />}
+      <Login />
+    </>
+  );
+};
 
 // Protected route component
 const ProtectedRoute = ({ children }) => {
@@ -15,11 +115,9 @@ const ProtectedRoute = ({ children }) => {
   } catch (error) {
     console.error("Error parsing user from localStorage:", error);
   }
-  
   if (!user) {
     return <Navigate to="/login" replace />;
   }
-  
   return children;
 };
 
@@ -30,6 +128,7 @@ const App = () => {
     const checkScreenSize = () => {
       setIsLargeScreen(window.innerWidth >= 1024);
     };
+    
     window.addEventListener('resize', checkScreenSize);
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
@@ -71,14 +170,42 @@ const App = () => {
   return (
     <Router>
       <Routes>
-        {/* Login route comes first */}
-        <Route path="/login" element={<Login />} />
+        {/* Login route with loading spinner */}
+        <Route path="/login" element={<LoginWithLoading />} />
         
-        {/* Protected routes */}
-        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-        <Route path="/invoices-archive" element={<ProtectedRoute><InvoicesArchive /></ProtectedRoute>} />
-        <Route path="/flagged-review" element={<ProtectedRoute><FlaggedForReview /></ProtectedRoute>} />
-        <Route path="/purchase-order" element={<ProtectedRoute><PurchaseOrders /></ProtectedRoute>} />
+        {/* Protected routes with loading spinners */}
+        <Route 
+          path="/dashboard" 
+          element={
+            <ProtectedRoute>
+              <DashboardWithLoading />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/invoices-archive" 
+          element={
+            <ProtectedRoute>
+              <InvoicesArchiveWithLoading />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/flagged-review" 
+          element={
+            <ProtectedRoute>
+              <FlaggedForReviewWithLoading />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/purchase-order" 
+          element={
+            <ProtectedRoute>
+              <PurchaseOrdersWithLoading />
+            </ProtectedRoute>
+          } 
+        />
         
         {/* Root route redirects to login */}
         <Route path="/" element={<Navigate to="/login" replace />} />
