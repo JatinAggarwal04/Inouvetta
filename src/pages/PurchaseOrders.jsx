@@ -20,8 +20,11 @@ const PurchaseOrders = () => {
   // ✅ Fetch raw data
   const fetchDetails = async () => {
     try {
-      // ✅ Fetch purchase orders
-      const { data: orders, error: ordersError } = await supabase.from("purchase_orders").select("*");
+      // ✅ Fetch purchase orders (now sorting by order_date in the query)
+      const { data: orders, error: ordersError } = await supabase
+        .from("purchase_orders")
+        .select("*")
+        .order('order_date', { ascending: false }); // ✅ Sort by order_date descending (newest first)
 
       // ✅ Fetch purchase order items
       const { data: orderItems, error: itemsError } = await supabase.from("purchase_order_item").select(
@@ -136,15 +139,24 @@ const PurchaseOrders = () => {
     let filtered = [...tableData];
   
     if (minBalance) {
-      filtered = filtered.filter((item) => item.balanceDue >= parseFloat(minBalance));
+      filtered = filtered.filter((item) => {
+        // Convert string balance (e.g., "₹1000") to number for comparison
+        const balance = item.balanceDue ? parseFloat(item.balanceDue.replace('₹', '')) : 0;
+        return balance >= parseFloat(minBalance);
+      });
     }
   
     if (maxBalance) {
-      filtered = filtered.filter((item) => item.balanceDue <= parseFloat(maxBalance));
+      filtered = filtered.filter((item) => {
+        // Convert string balance (e.g., "₹1000") to number for comparison
+        const balance = item.balanceDue ? parseFloat(item.balanceDue.replace('₹', '')) : 0;
+        return balance <= parseFloat(maxBalance);
+      });
     }
   
     if (startDate && endDate) {
       filtered = filtered.filter((item) => {
+        if (!item.order_date) return false;
         const itemDate = new Date(item.order_date);
         return itemDate >= new Date(startDate) && itemDate <= new Date(endDate);
       });
@@ -168,6 +180,18 @@ const PurchaseOrders = () => {
       (order.vendor_name && order.vendor_name.toLowerCase().includes(lowerSearch))
     );
   });
+
+  // Helper function for status styling that was missing
+  const getStatusStyle = (status) => {
+    switch (status) {
+      case "Settled":
+        return "bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium";
+      case "Unsettled":
+        return "bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium";
+      default:
+        return "bg-gray-100 text-gray-800 px-2 py-1 rounded-full text-xs font-medium";
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#F2F2F2]">
