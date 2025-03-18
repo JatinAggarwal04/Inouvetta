@@ -217,6 +217,31 @@ const FlaggedForReview = () => {
             { key: "vendor_name", label: "Vendor Name" },
             { key: "invoice_date", label: "Invoice Date" },
             { key: "reason", label: "Reason" },
+            {
+              key: "urgency",
+              label: "Urgency",
+              render: (row) => {
+                let urgencyColor = "bg-green-100 text-green-700 border border-green-400"; // Default: No Urgency (Green)
+                let urgencyText = "No Urgency"; // Default text
+            
+                if (row.urgency !== null) {
+                  const urgencyValue = parseInt(row.urgency, 10);
+                  urgencyText = `${urgencyValue} days`;
+            
+                  if (urgencyValue < 10) {
+                    urgencyColor = "bg-red-100 text-red-700 border border-red-400"; // High urgency (Red)
+                  } else {
+                    urgencyColor = "bg-yellow-100 text-yellow-700 border border-yellow-400"; // Medium urgency (Yellow)
+                  }
+                }
+            
+                return (
+                  <span className={`px-3 py-1 rounded-lg text-sm font-medium ${urgencyColor} shadow-sm`}>
+                    {urgencyText}
+                  </span>
+                );
+              },
+            },
             { key: "Invoices_pdf", label: "Invoice PDF" },
             { key: "Report_pdfs", label: "Report PDFs" },
             {
