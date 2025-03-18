@@ -27,7 +27,7 @@ const Dashboard = () => {
       // ✅ Fetch flagged invoices (with status handling)
       const { data: flagged, error: flaggedError } = await supabase
         .from("flagged")
-        .select("order_id, invoice_id, invoice_date, vendor_id, status, total");
+        .select("order_id, invoice_id, invoice_date, vendor_id, status, total_amount");
 
       // ✅ Fetch vendors (get vendor_name & gstin)
       const { data: vendors, error: vendorsError } = await supabase
@@ -92,7 +92,7 @@ const Dashboard = () => {
           vendor_name:
             vendorMap[flaggedEntry.vendor_id]?.vendor_name || "Unknown Vendor",
           gstin: vendorMap[flaggedEntry.vendor_id]?.gstin || "N/A",
-          total: flaggedEntry.total ? `₹${flaggedEntry.total}` : "N/A", // ✅ Adds ₹ symbol
+          total: flaggedEntry.total_amount ? `₹${flaggedEntry.total_amount}` : "N/A", // ✅ Adds ₹ symbol
           status:
             flaggedEntry.status === "Rejected"
               ? "Rejected"

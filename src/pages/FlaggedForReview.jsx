@@ -11,6 +11,10 @@ const FlaggedForReview = () => {
   const [tableData, setTableData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
   const [userLevel, setUserLevel] = useState(null);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [actionType, setActionType] = useState(null);
+  const [currentInvoice, setCurrentInvoice] = useState(null);
+  const [isSuccess, setIsSuccess] = useState(false);
 
   // Fetch logged-in user details
   useEffect(() => {
@@ -41,7 +45,7 @@ const FlaggedForReview = () => {
     try {
       const { data: flaggedInvoices, error: flaggedError } = await supabase
         .from("flagged")
-        .select("order_id, invoice_id, vendor_id, invoice_date, reason, Invoices_pdf, Report_pdfs, status, level");
+        .select("order_id, invoice_id, vendor_id, invoice_date, reason, Invoices_pdf, Report_pdfs, status, level, urgency, total_amount, sgst_amount, cgst_amount, igst_amount");
 
       const { data: vendors, error: vendorsError } = await supabase
         .from("vendors_db")
@@ -60,7 +64,8 @@ const FlaggedForReview = () => {
         vendor_name: vendorMap[invoice.vendor_id] || "Unknown Vendor",
       }));
 
-      mergedData = mergedData?.filter((invoice) => invoice.status !== "Rejected");
+      // Filter out approved and rejected invoices
+      mergedData = mergedData?.filter((invoice) => invoice.status !== "Rejected" && invoice.status !== "Approved");
 
       setTableData(mergedData || []);
       setFilteredData(mergedData || []);
@@ -74,55 +79,92 @@ const FlaggedForReview = () => {
   }, []);
 
   // Handle Approve action
-  const handleApprove = (orderId) => {
+  const handleApprove = (invoice) => {
     if (userLevel === null) {
       alert("User level is not yet loaded.");
       return;
     }
-    alert(`Invoice ${orderId} approved.`);
+    setActionType("approve");
+    setCurrentInvoice(invoice);
+    setShowConfirmation(true);
   };
 
   // Handle Deny action
-  const handleDeny = async (invoice) => {
+  const handleDeny = (invoice) => {
     if (userLevel === null) {
       alert("User level is not yet loaded.");
       return;
     }
+    setActionType("reject");
+    setCurrentInvoice(invoice);
+    setShowConfirmation(true);
+  };
+
+  // Handle confirmation
+  const handleConfirm = async () => {
     try {
-      const { error: rejectError } = await supabase.from("Rejected").insert([
-        {
-          order_id: invoice.order_id,
-          invoice_id: invoice.invoice_id,
-          vendor_id: invoice.vendor_id,
-          Reason: invoice.reason,
-          pdf_url: invoice.Invoices_pdf,
-          invoice_date: invoice.invoice_date,
-          total:invoice.total,
-        },
-      ]);
+      if (actionType === "approve") {
+        // Insert into invoices table
+        const { error: insertError } = await supabase.from("invoices").insert([
+          {
+            invoice_no: currentInvoice.invoice_id,
+            order_id: currentInvoice.order_id,
+            order_date: currentInvoice.invoice_date,
+            total_amount: currentInvoice.total_amount,
+            cgst_amount: currentInvoice.cgst_amount,
+            sgst_amount: currentInvoice.sgst_amount,
+            igst_amount: currentInvoice.igst_amount,
+            vendor_id: currentInvoice.vendor_id,
+            pdf_url: currentInvoice.Invoices_pdf,
+            urgency: currentInvoice.urgency
+          }
+        ]);
 
-      if (rejectError) {
-        console.error("Error moving to rejected table:", rejectError);
-        alert("Error rejecting invoice: " + JSON.stringify(rejectError, null, 2));
-        return;
+        if (insertError) {
+          console.error("Error inserting into invoices table:", insertError);
+          return;
+        }
+
+        // Update status in flagged table
+        const { error: updateError } = await supabase
+          .from("flagged")
+          .update({ status: "Approved" })
+          .eq("order_id", currentInvoice.order_id);
+
+        if (updateError) {
+          console.error("Error updating status in flagged table:", updateError);
+          return;
+        }
+      } else if (actionType === "reject") {
+        // Only update status in flagged table
+        const { error: updateError } = await supabase
+          .from("flagged")
+          .update({ status: "Rejected" })
+          .eq("order_id", currentInvoice.order_id);
+
+        if (updateError) {
+          console.error("Error updating status in flagged table:", updateError);
+          return;
+        }
       }
 
-      const { error: updateError } = await supabase
-        .from("flagged")
-        .update({ status: "Rejected" })
-        .eq("order_id", invoice.order_id);
-
-      if (updateError) {
-        console.error("Error updating status in flagged table:", updateError);
-        alert("Error updating invoice status: " + JSON.stringify(updateError, null, 2));
-        return;
-      }
-
-      fetchDetails();
+      // Show success message
+      setIsSuccess(true);
+      setTimeout(() => {
+        setIsSuccess(false);
+        setShowConfirmation(false);
+        fetchDetails(); // Refresh data
+      }, 2000);
     } catch (err) {
-      console.error("Unexpected error while denying invoice:", err);
-      alert("Unexpected error: " + err.message);
+      console.error("Unexpected error:", err);
     }
+  };
+
+  // Handle cancel
+  const handleCancel = () => {
+    setShowConfirmation(false);
+    setCurrentInvoice(null);
+    setActionType(null);
   };
 
   return (
@@ -171,7 +213,7 @@ const FlaggedForReview = () => {
                     userLevel >= row.level ? (
                       <div className="flex gap-4">
                         <button
-                          onClick={() => handleApprove(row.invoice_id)}
+                          onClick={() => handleApprove(row)}
                           className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 cursor-pointer"
                         >
                           Approve
@@ -206,6 +248,54 @@ const FlaggedForReview = () => {
           })}
         />
       </main>
+
+      {/* Confirmation Modal */}
+      {showConfirmation && (
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <div className="absolute inset-0 bg-black opacity-50 backdrop-blur-sm"></div>
+          <div className="bg-white rounded-lg shadow-xl p-6 w-96 relative z-10">
+            {!isSuccess ? (
+              <>
+                <h2 className="text-2xl font-bold mb-4 text-gray-800">
+                  {actionType === "approve" ? "Approve Invoice" : "Reject Invoice"}
+                </h2>
+                <p className="mb-6 text-gray-600">
+                  Are you sure you want to {actionType === "approve" ? "approve" : "reject"} invoice{" "}
+                  <span className="font-bold">{currentInvoice?.invoice_id}</span>?
+                </p>
+                <div className="flex justify-end gap-4">
+                  <button
+                    onClick={handleCancel}
+                    className="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleConfirm}
+                    className={`px-4 py-2 text-white rounded cursor-pointer ${
+                      actionType === "approve" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"
+                    }`}
+                  >
+                    Confirm
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-4">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                  <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                  </svg>
+                </div>
+                <h3 className="text-xl font-bold text-gray-800 mb-2">Success!</h3>
+                <p className="text-gray-600">
+                  Invoice has been {actionType === "approve" ? "approved" : "rejected"} successfully.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
