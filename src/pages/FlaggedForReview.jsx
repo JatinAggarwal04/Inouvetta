@@ -15,6 +15,7 @@ const FlaggedForReview = () => {
   const [actionType, setActionType] = useState(null);
   const [currentInvoice, setCurrentInvoice] = useState(null);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [selectedPdf, setSelectedPdf] = useState(null);
 
   // Fetch logged-in user details
   useEffect(() => {
@@ -77,6 +78,20 @@ const FlaggedForReview = () => {
   useEffect(() => {
     fetchDetails();
   }, []);
+
+  // Updated PDF click handler
+  const handlePdfClick = (pdfUrl) => {
+    if (!pdfUrl) {
+      alert("No PDF attached.");
+      return;
+    }
+    setSelectedPdf(pdfUrl);
+  };
+
+  // Function to close the PDF viewer
+  const closePdfViewer = () => {
+    setSelectedPdf(null);
+  };
 
   // Handle Approve action
   const handleApprove = (invoice) => {
@@ -246,6 +261,7 @@ const FlaggedForReview = () => {
               (invoice.vendor_name && invoice.vendor_name.toLowerCase().includes(lowerSearch))
             );
           })}
+          onPdfClick={handlePdfClick}
         />
       </main>
 
@@ -293,6 +309,32 @@ const FlaggedForReview = () => {
                 </p>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* PDF Viewer Modal */}
+      {selectedPdf && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-5xl h-5/6 flex flex-col">
+            <div className="flex justify-between items-center p-4 border-b">
+              <h2 className="text-xl font-semibold">Invoice PDF</h2>
+              <button
+                onClick={closePdfViewer}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="flex-grow p-2">
+              <iframe
+                src={selectedPdf}
+                className="w-full h-full border-0"
+                title="PDF Viewer"
+              ></iframe>
+            </div>
           </div>
         </div>
       )}
