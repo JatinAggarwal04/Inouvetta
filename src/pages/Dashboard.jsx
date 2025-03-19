@@ -4,6 +4,7 @@ import Sidebar from "../components/Sidebar";
 import FilterCard from "../components/FilterCard";
 import TableComponent from "../components/TableComponent";
 import SearchBar from "../components/SearchBar";
+import StatusBarGraph from "../components/StatusBarGraph";
 import supabase from "../supabaseClient";
 
 const Dashboard = () => {
@@ -326,23 +327,25 @@ const Dashboard = () => {
     <div className="min-h-screen bg-[#F2F2F2]">
       <Navbar />
       <Sidebar />
-
+  
       <main className="ml-[280px] pt-24 px-6">
         <h1 className="text-4xl font-serif font-bold text-gray-800 mb-8">
           Dashboard
         </h1>
-
+  
         {/* ✅ Filter Card */}
         <FilterCard
           onApplyFilters={handleApplyFilters}
           onResetFilters={handleResetFilters}
           tableData={searchFilteredData}
         />
-
-
+  
+        {/* Status Bar Graph */}
+        <StatusBarGraph data={searchFilteredData} />
+  
         {/* ✅ SearchBar */}
         <SearchBar onSearch={setSearchQuery} />
-
+  
         {/* ✅ TableComponent for Dashboard */}
         <TableComponent
           title="Dashboard Activity"
@@ -352,7 +355,7 @@ const Dashboard = () => {
             { key: "vendor_name", label: "Vendor Name" },
             { key: "gstin", label: "GSTIN" },
             { key: "invoice_date", label: "Invoice Date" },
-            { key: "total", label: "Total Amount" }, // ✅ Added total column
+            { key: "total", label: "Total Amount" },
             {
               key: "status",
               label: "Status",
