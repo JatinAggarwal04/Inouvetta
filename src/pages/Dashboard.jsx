@@ -4,6 +4,7 @@ import Sidebar from "../components/Sidebar";
 import FilterCard from "../components/FilterCard";
 import TableComponent from "../components/TableComponent";
 import SearchBar from "../components/SearchBar";
+import StatusBarGraph from "../components/StatusBarGraph";
 import supabase from "../supabaseClient";
 
 const Dashboard = () => {
@@ -72,6 +73,7 @@ const Dashboard = () => {
           order_id: invoice.order_id,
           invoice_id: invoice.invoice_no,
           invoice_date: invoice.order_date,
+          vendor_id: invoice.vendor_id,
           vendor_name:
             vendorMap[invoice.vendor_id]?.vendor_name || "Unknown Vendor",
           gstin: vendorMap[invoice.vendor_id]?.gstin || "N/A",
@@ -91,6 +93,7 @@ const Dashboard = () => {
           order_id: flaggedEntry.order_id,
           invoice_id: flaggedEntry.invoice_id,
           invoice_date: flaggedEntry.invoice_date,
+          vendor_id: flaggedEntry.vendor_id,
           vendor_name:
             vendorMap[flaggedEntry.vendor_id]?.vendor_name || "Unknown Vendor",
           gstin: vendorMap[flaggedEntry.vendor_id]?.gstin || "N/A",
@@ -114,6 +117,122 @@ const Dashboard = () => {
     return finalData;
   };
 
+  // ✅ Function to sync data with dashboard_activity table
+  const syncWithDashboardActivity = async (processedData) => {
+    try {
+      console.log("Starting sync with dashboard_activity...");
+      
+      // First, fetch existing records from dashboard_activity
+      const { data: existingActivities, error: fetchError } = await supabase
+        .from("dashboard_activity")
+        .select("*");
+
+      if (fetchError) {
+        console.error("Error fetching dashboard_activity data:", fetchError);
+        return;
+      }
+
+      console.log("Existing dashboard_activity entries:", existingActivities ? existingActivities.length : 0);
+
+      // Create a lookup map for existing activities by order_id and invoice_id
+      const existingMap = {};
+      if (existingActivities && existingActivities.length) {
+        existingActivities.forEach(activity => {
+          // Create a unique key for each entry
+          const key = `${activity.order_id}-${activity.invoice_id}`;
+          existingMap[key] = activity;
+        });
+      }
+
+      // Keep track of operations
+      let insertCount = 0;
+      let updateCount = 0;
+      let noChangeCount = 0;
+
+      // Process each item in the processed data
+      for (const item of processedData) {
+        // Make sure we extract the numeric amount from the total string
+        const totalAmount = item.total.replace('₹', '').trim();
+        
+        // Create a unique key matching the format used for the lookup map
+        const key = `${item.order_id}-${item.invoice_id}`;
+        const existingItem = existingMap[key];
+
+        // Prepare data for insertion/update - store vendor_id instead of vendor_name and gstin
+        const recordData = {
+          order_id: item.order_id,
+          invoice_id: item.invoice_id,
+          invoice_date: item.invoice_date,
+          vendor_id: item.vendor_id, // Store vendor_id instead of vendor details directly
+          total_amount: totalAmount,
+          status: item.status,
+          updated_at: new Date().toISOString()
+        };
+
+        console.log(`Processing item: ${key}`, recordData);
+        console.log(`Item exists in DB: ${Boolean(existingItem)}`);
+
+        if (!existingItem) {
+          // If record doesn't exist, insert it
+          console.log(`Inserting new record for ${key}`);
+          
+          const { data, error: insertError } = await supabase
+            .from("dashboard_activity")
+            .insert([recordData])
+            .select();
+
+          if (insertError) {
+            console.error(`Error inserting record for ${key}:`, insertError);
+          } else {
+            console.log(`Successfully inserted record for ${key}:`, data);
+            insertCount++;
+          }
+        } else {
+          // Check if any field has changed
+          const hasChanged = 
+            existingItem.invoice_date !== item.invoice_date ||
+            existingItem.vendor_id !== item.vendor_id || // Compare vendor_id instead
+            existingItem.total_amount !== totalAmount ||
+            existingItem.status !== item.status;
+
+          console.log(`Changes detected for ${key}: ${hasChanged}`);
+          
+          if (hasChanged) {
+            // Log what changed
+            console.log("Changes:", {
+              invoice_date: { old: existingItem.invoice_date, new: item.invoice_date, changed: existingItem.invoice_date !== item.invoice_date },
+              vendor_id: { old: existingItem.vendor_id, new: item.vendor_id, changed: existingItem.vendor_id !== item.vendor_id },
+              total_amount: { old: existingItem.total_amount, new: totalAmount, changed: existingItem.total_amount !== totalAmount },
+              status: { old: existingItem.status, new: item.status, changed: existingItem.status !== item.status }
+            });
+            
+            // Update the existing record with new values
+            const { data, error: updateError } = await supabase
+              .from("dashboard_activity")
+              .update(recordData)
+              .eq("order_id", item.order_id)
+              .eq("invoice_id", item.invoice_id)
+              .select();
+
+            if (updateError) {
+              console.error(`Error updating record for ${key}:`, updateError);
+            } else {
+              console.log(`Successfully updated record for ${key}:`, data);
+              updateCount++;
+            }
+          } else {
+            console.log(`No changes for ${key}, skipping update`);
+            noChangeCount++;
+          }
+        }
+      }
+
+      console.log(`Dashboard activity sync complete: ${insertCount} inserts, ${updateCount} updates, ${noChangeCount} unchanged`);
+    } catch (err) {
+      console.error("Error syncing with dashboard_activity:", err);
+    }
+  };
+
   // ✅ Fetch data on component mount
   useEffect(() => {
     const fetchData = async () => {
@@ -126,12 +245,19 @@ const Dashboard = () => {
 
   // ✅ Process data when rawData updates
   useEffect(() => {
-    if (rawData.invoices.length > 0 || rawData.flagged.length > 0) {
-      const processedData = generateTableData();
-      console.log("Processed Data:", processedData);
-      setTableData(processedData);
-      setFilteredData(processedData);
-    }
+    const processAndSyncData = async () => {
+      if (rawData.invoices.length > 0 || rawData.flagged.length > 0) {
+        const processedData = generateTableData();
+        console.log("Processed Data:", processedData);
+        setTableData(processedData);
+        setFilteredData(processedData);
+        
+        // Sync the processed data with dashboard_activity table
+        await syncWithDashboardActivity(processedData);
+      }
+    };
+    
+    processAndSyncData();
   }, [rawData]);
 
   // ✅ Apply Filters
@@ -201,22 +327,25 @@ const Dashboard = () => {
     <div className="min-h-screen bg-[#F2F2F2]">
       <Navbar />
       <Sidebar />
-
+  
       <main className="ml-[280px] pt-24 px-6">
         <h1 className="text-4xl font-serif font-bold text-gray-800 mb-8">
           Dashboard
         </h1>
-
+  
         {/* ✅ Filter Card */}
         <FilterCard
           onApplyFilters={handleApplyFilters}
           onResetFilters={handleResetFilters}
           tableData={searchFilteredData}
         />
-
+  
+        {/* Status Bar Graph */}
+        <StatusBarGraph data={searchFilteredData} />
+  
         {/* ✅ SearchBar */}
         <SearchBar onSearch={setSearchQuery} />
-
+  
         {/* ✅ TableComponent for Dashboard */}
         <TableComponent
           title="Dashboard Activity"
@@ -226,7 +355,7 @@ const Dashboard = () => {
             { key: "vendor_name", label: "Vendor Name" },
             { key: "gstin", label: "GSTIN" },
             { key: "invoice_date", label: "Invoice Date" },
-            { key: "total", label: "Total Amount" }, // ✅ Added total column
+            { key: "total", label: "Total Amount" },
             {
               key: "status",
               label: "Status",

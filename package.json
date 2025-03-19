@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",
+    "@tableau/embedding-api": "^3.10.1",
     "@tailwindcss/postcss": "^4.0.3",
     "@vercel/analytics": "^1.4.1",
     "chart.js": "^4.4.7",
