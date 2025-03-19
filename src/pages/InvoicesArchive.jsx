@@ -289,12 +289,16 @@ const generateTableData = () => {
             
                 if (row.urgency !== null) {
                   const urgencyValue = parseInt(row.urgency, 10);
-                  urgencyText = `${urgencyValue} days`;
             
-                  if (urgencyValue < 10) {
-                    urgencyColor = "bg-red-100 text-red-700 border border-red-400"; // High urgency (Red)
+                  if (urgencyValue === 0) {
+                    urgencyText = "No Urgency";
                   } else {
-                    urgencyColor = "bg-yellow-100 text-yellow-700 border border-yellow-400"; // Medium urgency (Yellow)
+                    urgencyText = `${urgencyValue} days`;
+                    if (urgencyValue < 10) {
+                      urgencyColor = "bg-red-100 text-red-700 border border-red-400"; // High urgency (Red)
+                    } else {
+                      urgencyColor = "bg-yellow-100 text-yellow-700 border border-yellow-400"; // Medium urgency (Yellow)
+                    }
                   }
                 }
             
@@ -311,7 +315,30 @@ const generateTableData = () => {
             { key: "igst_amount", label: "IGST Amount" },
             { key: "total_amount", label: "Total Amount" },
             { key: "pdf_url", label: "Invoice PDF" },
-            { key: "payment_status", label: "Payment Status" },
+            {
+              key: "payment_status",
+              label: "Payment Status",
+              render: (row) => {  // Accept the entire row object
+                const status = row.payment_status; // Extract the payment_status field
+            
+                let statusColor = "bg-gray-100 text-gray-800 border border-gray-300"; 
+                let statusText = status || "Unknown"; 
+            
+                if (status === "Paid") {
+                  statusColor = "bg-green-100 text-green-700 border border-green-400";
+                } else if (status === "Pending") {
+                  statusColor = "bg-yellow-100 text-red-700 border border-yellow-400";
+                } else if (status === "Overdue") {
+                  statusColor = "bg-red-100 text-red-700 border border-red-400";
+                }
+            
+                return (
+                  <span className={`px-3 py-1 rounded-lg text-sm font-medium ${statusColor} shadow-sm`}>
+                    {statusText}
+                  </span>
+                );
+              },
+            },
           ]}
           data={searchFilteredData}
           onPdfClick={handlePdfClick}
