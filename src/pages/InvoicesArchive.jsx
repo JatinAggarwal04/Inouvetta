@@ -54,7 +54,7 @@ const InvoicesArchive = () => {
     const { data: invoices, error: invoicesError } = await supabase
       .from("invoices")
       .select(
-        "order_id, invoice_no, order_date, total_amount, cgst_amount, sgst_amount, igst_amount, vendor_id, pdf_url, urgency"
+        "order_id, invoice_no, order_date, total_amount, cgst_amount, sgst_amount, igst_amount, vendor_id, pdf_url, urgency, payment_status"
       );
 
     // ✅ Fetch vendors for vendor_name & gstin
@@ -96,6 +96,7 @@ const generateTableData = () => {
     gstin: vendorMap[invoice.vendor_id]?.gstin || "N/A",
     pdf_url: invoice.pdf_url || null, // Keep the original pdf_url field
     urgency: invoice.urgency, // ✅ Include urgency from database
+    payment_status:invoice.payment_status,
   }));
   
   // Sort processedData by order_date (newest to oldest)
@@ -308,7 +309,9 @@ const generateTableData = () => {
             { key: "cgst_amount", label: "CGST Amount" },
             { key: "sgst_amount", label: "SGST Amount" },
             { key: "igst_amount", label: "IGST Amount" },
+            { key: "total_amount", label: "Total Amount" },
             { key: "pdf_url", label: "Invoice PDF" },
+            { key: "payment_status", label: "Payment Status" },
           ]}
           data={searchFilteredData}
           onPdfClick={handlePdfClick}

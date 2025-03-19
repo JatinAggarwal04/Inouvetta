@@ -1,14 +1,13 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Home, FileText, AlertTriangle, Package } from "lucide-react";
+import { Home, FileText, AlertTriangle, Package, IndianRupee } from "lucide-react";
 
 const Sidebar = () => {
   const location = useLocation();
   
   const isActive = (path) => {
-    if (path === '/dashboard') {
-      
-      return location.pathname === path || location.pathname === '/';
+    if (path === "/dashboard") {
+      return location.pathname === path || location.pathname === "/";
     }
     return location.pathname === path;
   };
@@ -21,7 +20,7 @@ const Sidebar = () => {
       <Link 
         to="/dashboard" 
         className={`flex items-center px-4 py-2 rounded-md transition-colors ${
-          isActive('/dashboard') ? 'bg-purple-600 text-white' : 'hover:bg-gray-100'
+          isActive("/dashboard") ? "bg-purple-600 text-white" : "hover:bg-gray-100"
         }`}
       >
         <Home className="w-5 h-5 mr-2" />
@@ -30,7 +29,7 @@ const Sidebar = () => {
       <Link
         to="/invoices-archive"
         className={`flex items-center px-4 py-2 mt-4 rounded-md transition-colors ${
-          isActive('/invoices-archive') ? 'bg-purple-600 text-white' : 'hover:bg-gray-100'
+          isActive("/invoices-archive") ? "bg-purple-600 text-white" : "hover:bg-gray-100"
         }`}
       >
         <FileText className="w-5 h-5 mr-2" />
@@ -39,7 +38,7 @@ const Sidebar = () => {
       <Link
         to="/flagged-review"
         className={`flex items-center px-4 py-2 mt-4 rounded-md transition-colors ${
-          isActive('/flagged-review') ? 'bg-purple-600 text-white' : 'hover:bg-gray-100'
+          isActive("/flagged-review") ? "bg-purple-600 text-white" : "hover:bg-gray-100"
         }`}
       >
         <AlertTriangle className="w-5 h-5 mr-2" />
@@ -48,11 +47,20 @@ const Sidebar = () => {
       <Link
         to="/purchase-order"
         className={`flex items-center px-4 py-2 mt-4 rounded-md transition-colors ${
-          isActive('/purchase-order') ? 'bg-purple-600 text-white' : 'hover:bg-gray-100'
+          isActive("/purchase-order") ? "bg-purple-600 text-white" : "hover:bg-gray-100"
         }`}
       >
         <Package className="w-5 h-5 mr-2" />
         Purchase Order
+      </Link>
+      <Link
+        to="/accounts-payable"
+        className={`flex items-center px-4 py-2 mt-4 rounded-md transition-colors ${
+          isActive("/accounts-payable") ? "bg-purple-600 text-white" : "hover:bg-gray-100"
+        }`}
+      >
+        <IndianRupee className="w-5 h-5 mr-2" />
+        Accounts Payable
       </Link>
     </div>
   );
