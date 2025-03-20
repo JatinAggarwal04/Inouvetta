@@ -50,7 +50,7 @@ const AccountsPayable = () => {
   
         // Calculate due date based on urgency
         let dueDate = "No Due Date";
-        if (invoice.urgency !== null) {
+        if (invoice.urgency !== null&& invoice.urgency > 0) {
           const orderDate = new Date(invoice.order_date);
           orderDate.setDate(orderDate.getDate() + parseInt(invoice.urgency, 10));
           dueDate = orderDate.toISOString().split('T')[0]; // Format YYYY-MM-DD
