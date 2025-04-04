@@ -67,5 +67,5 @@ python email.py
 python ocr.py
 ```
 ---
-### We have used Supabase which will get inactive in a few days as a paid subsription is required. So, we are providing you with csv for our tables and invoices pdf
+### We have used Supabase which will get inactive in a few days as a paid subsription is required. So, we are providing you with csv for our tables and invoices pdf.
 
