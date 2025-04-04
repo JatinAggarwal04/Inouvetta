@@ -11,15 +11,15 @@ This system automates invoice handling by integrating **UiPath RPA, Supabase, Go
 - UiPath RPA bot monitors an email inbox for new invoices.  
 - If an email has **no attachment**, the sender is notified automatically.  
 - If an email has **no subject**, it is ignored.  
-- Valid invoices are **saved to Google Drive** for further processing.  
+- Valid invoices are **saved to database** for further processing.  
 
 ### 2️⃣ Data Extraction & Storage  
 - OCR extracts invoice details (invoice number, vendor, amount, taxes, etc.).  
-- Extracted data is **stored in a Supabase database** under the `invoices` table.  
-- Each invoice is assigned a unique `invoice_id`.  
+- These are then matched with the `purchase_orders` table, if matched then it is sent to `invoices`, `accounts_payable` and if not then to `flagged database`.
+
 
 ### 3️⃣ Automated Invoice Flagging  
-- Invoices are **automatically flagged** based on predefined rules:  
+- Invoices are **automatically flagged** based on predefined rules like:  
   - Missing details  
   - Tax discrepancies  
   - Duplicate detection  
@@ -43,13 +43,13 @@ Subject: New Flagged Invoice: INV-12345
 ### 5️⃣ Invoice Review & Approval  
 - Reviewers access invoices via a **React-based dashboard**.  
 - Actions available:  
-  ✅ **Approve** – Moves the invoice to `accounts_payable`.  
-  ❌ **Deny** – Reviewer must enter a reason; invoice is sent for correction.  
+  ✅ **Approve** – Moves the invoice to `invoices`,`accounts_payable`.  
+  ❌ **Deny** – Invoices is marked as rejected.  
 
 ### 6️⃣ Accounts Payable & Payment Processing  
 - Approved invoices are added to `accounts_payable`.  
-- **Due date calculation** is based on urgency levels.  
-- Once paid, invoices are marked **Settled**, and a `transaction_id` is generated.  
+- Here you get a mock interface how an accounts payable software can be connected to our system in the future
+
 
 ---
 
