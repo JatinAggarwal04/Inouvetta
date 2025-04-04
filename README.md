@@ -61,5 +61,9 @@ cd src
 npm run dev
 ```
 ### 2️⃣ Run the Python Scripts
+```
+cd Backend
+
+```
 
 
