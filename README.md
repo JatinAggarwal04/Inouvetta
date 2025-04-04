@@ -35,11 +35,11 @@ This system automates invoice handling by integrating **UiPath RPA, Supabase, Go
 Subject: New Flagged Invoice: INV-12345
 
 🚨 A new invoice has been flagged for review:
-	•	Invoice ID: INV-12345
-	•	Order ID: ORD-67890
-	•	Vendor ID: VEND-001
-	•	Invoice Date: 2025-04-04
-	•	Reason: Tax Mismatch
+-	•	Invoice ID: INV-12345
+-	•	Order ID: ORD-67890
+-	•	Vendor ID: VEND-001
+-	•	Invoice Date: 2025-04-04
+-	•	Reason: Tax Mismatch
 ### 5️⃣ Invoice Review & Approval  
 - Reviewers access invoices via a **React-based dashboard**.  
 - Actions available:  
