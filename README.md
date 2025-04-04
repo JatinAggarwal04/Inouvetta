@@ -61,9 +61,11 @@ cd src
 npm run dev
 ```
 ### 2️⃣ Run the Python Scripts
-```
+```bash
 cd Backend
-
+python email.py
+python ocr.py
 ```
+---
 
 
