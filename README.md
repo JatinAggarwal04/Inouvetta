@@ -53,18 +53,7 @@ Subject: New Flagged Invoice: INV-12345
 
 ---
 
-## 🛠 Technology Stack
-
-| Component         | Technology Used |
-|------------------|----------------|
-| **Automation**   | UiPath RPA |
-| **Storage**      | Google Drive |
-| **Data Processing** | OCR (Tesseract) |
-| **Database**     | Supabase (PostgreSQL) |
-| **Backend API**  | Supabase REST API |
-| **Frontend**     | React (Vite) + TailwindCSS |
-| **Backend**      | Node.js (Express.js) |
-| **Email Service** | Python (`smtplib`, `requests`) |
+## ▶️ Running the Project
 
 ---
 
