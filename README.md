@@ -60,6 +60,6 @@ Subject: New Flagged Invoice: INV-12345
 cd src
 npm run dev
 ```
-
+### 2️⃣ Run the Python Scripts
 
 
