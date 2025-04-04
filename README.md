@@ -53,7 +53,12 @@ Subject: New Flagged Invoice: INV-12345
 
 ---
 
-## ▶️ Running the Project
+## 🚀 Running the Project  
 
+### 1️⃣ Start the React Frontend  
+```bash
+cd src
+npm run dev
 ---
+
 
