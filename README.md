@@ -40,3 +40,31 @@ Subject: New Flagged Invoice: INV-12345
 	•	Vendor ID: VEND-001
 	•	Invoice Date: 2025-04-04
 	•	Reason: Tax Mismatch
+### 5️⃣ Invoice Review & Approval  
+- Reviewers access invoices via a **React-based dashboard**.  
+- Actions available:  
+  ✅ **Approve** – Moves the invoice to `accounts_payable`.  
+  ❌ **Deny** – Reviewer must enter a reason; invoice is sent for correction.  
+
+### 6️⃣ Accounts Payable & Payment Processing  
+- Approved invoices are added to `accounts_payable`.  
+- **Due date calculation** is based on urgency levels.  
+- Once paid, invoices are marked **Settled**, and a `transaction_id` is generated.  
+
+---
+
+## 🛠 Technology Stack
+
+| Component         | Technology Used |
+|------------------|----------------|
+| **Automation**   | UiPath RPA |
+| **Storage**      | Google Drive |
+| **Data Processing** | OCR (Tesseract) |
+| **Database**     | Supabase (PostgreSQL) |
+| **Backend API**  | Supabase REST API |
+| **Frontend**     | React (Vite) + TailwindCSS |
+| **Backend**      | Node.js (Express.js) |
+| **Email Service** | Python (`smtplib`, `requests`) |
+
+---
+
