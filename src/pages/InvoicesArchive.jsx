@@ -1,466 +1,373 @@
 import React, { useState, useEffect } from "react";
-import { FileText } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
+import FilterCard from "../components/FilterCard";
+import TableComponent from "../components/TableComponent";
+import SearchBar from "../components/SearchBar";
+import { FaTimes, FaLock } from "react-icons/fa";
+import supabase from "../supabaseClient";
 
 const InvoicesArchive = () => {
+  const [searchQuery, setSearchQuery] = useState("");
   const [tableData, setTableData] = useState([]);
-  const [showPdfPreview, setShowPdfPreview] = useState(false);
-  const [selectedPdf, setSelectedPdf] = useState(null);
-  const [selectedVendor, setSelectedVendor] = useState("");
-  const [paymentAmount, setPaymentAmount] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
   const [filteredData, setFilteredData] = useState([]);
-  const [showAlert, setShowAlert] = useState(false);
+  const [rawData, setRawData] = useState({ invoices: [], vendors: [] });
+  const [selectedPdf, setSelectedPdf] = useState(null);
+  
+  // Authentication states
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [password, setPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const pdfFiles = [
-    "/invoice_Aaron Hawkins_6817.pdf",
-    "/invoice_Aimee Bixby_39797.pdf",
-    "/invoice_Angele Hood_35601.pdf",
-    "/invoice_Bill Donatelli_11631.pdf",
-  ];
+  // Correct password - in a real application, this would be handled securely on the server
+  const CORRECT_PASSWORD = "invoice2025"; // This should be stored securely in production
 
-  const generateInvoiceId = () =>
-    `INV-${Math.floor(Math.random() * 10000).toString().padStart(4, "0")}`;
-
-    const vendors = [
-      "TechSol",
-      "GlobalServ",
-      "DigiSys",
-      "SmartElec",
-      "FutureTech",
-      "InnovCorp",
-      "DataSys",
-      "CloudPro",
-      "NetSol",
-      "SoftDyn",
-    ];
-
-  const generateTableData = (count) => {
-    return Array(count)
-      .fill(null)
-      .map(() => {
-        const date = new Date(
-          new Date().getTime() - Math.random() * 30 * 24 * 60 * 60 * 1000
-        );
-        return {
-          invoiceId: generateInvoiceId(),
-          vendorName: vendors[Math.floor(Math.random() * vendors.length)],
-          payment: `${(Math.random() * 1000000).toFixed(2)}`,
-          timeReceived: date.toLocaleTimeString(),
-          date: date.toLocaleDateString(),
-          emailId: `${vendors[Math.floor(Math.random() * vendors.length)]
-            .toLowerCase()
-            .replace(/\s+/g, ".")}@gmail.com`,
-          pdfUrl: pdfFiles[Math.floor(Math.random() * pdfFiles.length)],
-        };
-      });
+  // Handle password change
+  const handlePasswordChange = (e) => {
+    setPassword(e.target.value);
   };
 
-  const handleApplyFilters = () => {
-    const today = new Date().toISOString().split("T")[0];
-    if (endDate > today) {
-      alert("End date cannot be greater than today's date.");
-      return;
-    }
-
-    const filters = {
-      vendor: selectedVendor,
-      maxPayment: paymentAmount ? parseFloat(paymentAmount) : null,
-      startDate,
-      endDate,
-    };
-
+  // Handle password submission
+  const handlePasswordSubmit = (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setPasswordError("");
     
-    const newData = generateTableData(100, filters);
-    setTableData(newData);
+    // Simulate server verification with a slight delay
+    setTimeout(() => {
+      if (password === CORRECT_PASSWORD) {
+        setIsAuthenticated(true);
+      } else {
+        setPasswordError("Incorrect password. Please try again.");
+      }
+      setIsLoading(false);
+    }, 800);
+  };
 
-    let filtered = [...newData];
-    if (selectedVendor) {
-      filtered = filtered.filter((item) => item.vendorName === selectedVendor);
+  // ✅ Fetch raw data (Invoices + Vendors)
+  const fetchDetails = async () => {
+  if (!isAuthenticated) return;
+
+  try {
+    // ✅ Fetch invoices, including urgency column
+    const { data: invoices, error: invoicesError } = await supabase
+      .from("invoices")
+      .select(
+        "order_id, invoice_no, order_date, total_amount, cgst_amount, sgst_amount, igst_amount, vendor_id, pdf_url, urgency, payment_status"
+      );
+
+    // ✅ Fetch vendors for vendor_name & gstin
+    const { data: vendors, error: vendorsError } = await supabase
+      .from("vendors_db")
+      .select("vendor_id, vendor_name, gstin");
+
+    if (invoicesError) console.error("Error fetching invoices:", invoicesError);
+    if (vendorsError) console.error("Error fetching vendors:", vendorsError);
+
+    setRawData({ invoices: invoices || [], vendors: vendors || [] });
+  } catch (err) {
+    console.error("Unexpected error while fetching data:", err);
+  }
+};
+
+  // ✅ Process and merge data
+  // ✅ Process and merge data
+const generateTableData = () => {
+  const { invoices, vendors } = rawData;
+  // ✅ Create a lookup for vendor_name and gstin
+  const vendorMap = {};
+  vendors.forEach((vendor) => {
+    vendorMap[vendor.vendor_id] = {
+      vendor_name: vendor.vendor_name,
+      gstin: vendor.gstin,
+    };
+  });
+
+  const processedData = invoices.map((invoice) => ({
+    order_id: invoice.order_id,
+    invoice_no: invoice.invoice_no,
+    order_date: invoice.order_date,
+    total_amount: invoice.total_amount ? `₹${invoice.total_amount}` : "N/A",
+    cgst_amount: invoice.cgst_amount ? `₹${invoice.cgst_amount}` : "N/A",
+    sgst_amount: invoice.sgst_amount ? `₹${invoice.sgst_amount}` : "N/A",
+    igst_amount: invoice.igst_amount ? `₹${invoice.igst_amount}` : "N/A",
+    vendor_name: vendorMap[invoice.vendor_id]?.vendor_name || "Unknown Vendor",
+    gstin: vendorMap[invoice.vendor_id]?.gstin || "N/A",
+    pdf_url: invoice.pdf_url || null, // Keep the original pdf_url field
+    urgency: invoice.urgency, // ✅ Include urgency from database
+    payment_status:invoice.payment_status,
+  }));
+  
+  // Sort processedData by order_date (newest to oldest)
+  return processedData.sort((a, b) => {
+    const dateA = new Date(a.order_date);
+    const dateB = new Date(b.order_date);
+    return dateB - dateA; // For descending order (newest first)
+    // Use return dateA - dateB; for ascending order (oldest first)
+  });
+};
+
+  // ✅ Fetch data when authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      console.log("Fetching invoice details...");
+      fetchDetails();
     }
-    if (paymentAmount) {
+  }, [isAuthenticated]);
+
+  // ✅ Process data when rawData updates
+  useEffect(() => {
+    if (rawData.invoices.length) {
+      const processedData = generateTableData();
+      console.log("Processed Data:", processedData);
+      setTableData(processedData);
+      setFilteredData(processedData);
+    }
+  }, [rawData]);
+
+  // ✅ Apply Filters
+  const handleApplyFilters = ({
+    minBalance,
+    maxBalance,
+    startDate,
+    endDate,
+  }) => {
+    let filtered = [...tableData];
+
+    if (minBalance) {
       filtered = filtered.filter(
-        (item) => parseFloat(item.payment.replace("$", "")) <= parseFloat(paymentAmount)
+        (item) => parseFloat(item.total_amount.replace("₹", "")) >= minBalance
+      );
+    }
+    if (maxBalance) {
+      filtered = filtered.filter(
+        (item) => parseFloat(item.total_amount.replace("₹", "")) <= maxBalance
       );
     }
     if (startDate && endDate) {
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-      const diffTime = Math.abs(end - start);
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      
-      if (diffDays > 20) {
-        setShowAlert(true);
-      }
-      
       filtered = filtered.filter((item) => {
-        const itemDate = new Date(item.date);
-        return itemDate >= start && itemDate <= end;
+        const itemDate = new Date(item.order_date);
+        return itemDate >= new Date(startDate) && itemDate <= new Date(endDate);
       });
-
-      const lastTenDays = new Date();
-      lastThreeDays.setDate(lastTenDays.getDate() - 10);
-      if (end < lastTenDays) {
-        setShowNoFlaggedAlert(true);
-      }
     }
+
     setFilteredData(filtered);
   };
 
+  // ✅ Reset Filters
   const handleResetFilters = () => {
-    setSelectedVendor("");
-    setPaymentAmount("");
-    const end = new Date();
-    const start = new Date();
-    start.setDate(end.getDate() - 3);
-    setStartDate(start.toISOString().split("T")[0]);
-    setEndDate(end.toISOString().split("T")[0]);
-    setFilteredData([]);
-  };
-  const handleStartDateChange = (e) => {
-    const newStartDate = e.target.value;
-    const today = new Date().toISOString().split("T")[0];
-  
-    
-    if (newStartDate > today) {
-      alert("Start date cannot be after today's date.");
-      return;
-    }
-  
-    setStartDate(newStartDate);
-  
-    
-    if (newStartDate > endDate) {
-      setEndDate(newStartDate);
-    }
-  };
-  const handleEndDateChange = (e) => {
-    const newEndDate = e.target.value;
-    const today = new Date().toISOString().split("T")[0]; 
-  
-    
-    if (newEndDate > today) {
-      alert("End date cannot be after today's date.");
-      return;
-    }
-  
-    
-    if (newEndDate < startDate) {
-      alert("End date cannot be earlier than the start date.");
-      return;
-    }
-  
-    setEndDate(newEndDate);
+    setFilteredData(tableData);
   };
 
-  useEffect(() => {
-    const data = generateTableData(100);
-    setTableData(data);
-
-    const end = new Date();
-    const start = new Date();
-    start.setDate(end.getDate() - 10);
-
-    setStartDate(start.toISOString().split("T")[0]);
-    setEndDate(end.toISOString().split("T")[0]);
-  }, []);
-
-  const FilterCard = () => {
-    const today = new Date().toISOString().split("T")[0];
-  
+  // ✅ Apply Search
+  const searchFilteredData = filteredData.filter((invoice) => {
+    if (!searchQuery) return true;
+    const lowerSearch = searchQuery.toLowerCase();
     return (
-      <div className="bg-white rounded-xl shadow-md p-6 mb-6">
-        <h2 className="text-xl font-semibold mb-4">Filter Options</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Vendor
-            </label>
-            <div className="relative">
-              <select
-                value={selectedVendor}
-                onChange={(e) => setSelectedVendor(e.target.value)}
-                className="w-full bg-white text-gray-700 rounded-md p-2 pl-4 pr-10 shadow-md border-2 border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer transition-all appearance-none"
-              >
-                <option value="">All Vendors</option>
-                {vendors.map((vendor, index) => (
-                  <option key={index} value={vendor}>
-                    {vendor}
-                  </option>
-                ))}
-              </select>
-              <div className="absolute top-0 right-0 p-3 flex items-center pointer-events-none">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  className="w-5 h-5 text-gray-500"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
-              </div>
+      String(invoice.order_id).toLowerCase().includes(lowerSearch) ||
+      String(invoice.invoice_no).toLowerCase().includes(lowerSearch) ||
+      (invoice.vendor_name &&
+        invoice.vendor_name.toLowerCase().includes(lowerSearch))
+    );
+  });
+
+  // ✅ Handler for PDF button click
+  const handlePdfClick = (pdfUrl) => {
+    setSelectedPdf(pdfUrl);
+  };
+
+  // Function to close the PDF viewer
+  const closePdfViewer = () => {
+    setSelectedPdf(null);
+  };
+
+  // Login form component
+  const LoginForm = () => {
+    // Use useRef to maintain reference to the input element
+    const passwordInputRef = React.useRef(null);
+    
+    // Focus the input field when component mounts
+    React.useEffect(() => {
+      if (passwordInputRef.current) {
+        passwordInputRef.current.focus();
+      }
+    }, []);
+    
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#F2F2F2] px-4">
+        <div className="w-full max-w-md p-8 bg-white rounded-lg shadow-md">
+          <div className="flex justify-center mb-6">
+            <div className="p-3 bg-blue-100 rounded-full">
+              <FaLock size={24} className="text-blue-600" />
             </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Payment Amount
-            </label>
-            <input
-              type="number"
-              value={paymentAmount}
-              onChange={(e) => setPaymentAmount(e.target.value)}
-              placeholder="Enter amount (Min balance: ₹100)"
-              className="w-full rounded-md border border-gray-300 p-2"
-              min="100"
-              step="20"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Start Date
-            </label>
-            <input
-              type="date"
-              value={startDate}
-              onChange={handleStartDateChange}
-              max={today} 
-              className="w-full rounded-md border border-gray-300 p-2"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              End Date
-            </label>
-            <input
-              type="date"
-              value={endDate}
-              onChange={handleEndDateChange}
-              max={today} 
-              className="w-full rounded-md border border-gray-300 p-2"
-            />
-          </div>
-        </div>
-        <div className="mt-4 flex justify-end gap-4">
-          <button
-            onClick={handleResetFilters}
-            className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 cursor-pointer"
-          >
-            Reset Filters
-          </button>
-          <button
-            onClick={handleApplyFilters}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 cursor-pointer"
-          >
-            Apply Filters
-          </button>
+          <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">
+            Secure Invoice Archive
+          </h2>
+          <form onSubmit={handlePasswordSubmit} autoComplete="off">
+            <div className="mb-4">
+              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="password">
+                Enter Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={handlePasswordChange}
+                ref={passwordInputRef}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter access password"
+                required
+                autoComplete="new-password"
+              />
+              {passwordError && (
+                <p className="text-red-500 text-sm mt-2">{passwordError}</p>
+              )}
+            </div>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className={`w-full py-2 px-4 rounded-md font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                isLoading ? "opacity-70 cursor-not-allowed" : ""
+              }`}
+            >
+              {isLoading ? "Verifying..." : "Access Invoices"}
+            </button>
+          </form>
+          <p className="mt-6 text-sm text-center text-gray-600">
+            This page contains confidential financial information.
+            <br />
+            Authorized personnel only.
+          </p>
         </div>
       </div>
     );
   };
 
-  const PdfPreviewModal = ({ pdfUrl, onClose }) => (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg w-11/12 h-[90vh] flex flex-col">
-        <div className="p-4 border-b flex justify-between items-center">
-          <h2 className="text-xl font-bold">PDF Preview</h2>
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => window.open(pdfUrl, "_blank")}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 cursor-pointer"
-            >
-              Download
-            </button>
-            <button
-              onClick={onClose}
-              className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 cursor-pointer"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-        <div className="flex-1 overflow-auto p-4 bg-gray-100">
-          <object
-            data={pdfUrl}
-            type="application/pdf"
-            className="w-full h-full"
-          >
-            <iframe
-              src={`https://docs.google.com/viewer?url=${encodeURIComponent(
-                pdfUrl
-              )}&embedded=true`}
-              className="w-full h-full"
-              title="PDF Preview"
-            />
-          </object>
-        </div>
-      </div>
-    </div>
-  );
-
-  const AlertModal = () => (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg w-11/12 max-w-md p-6">
-        <h2 className="text-xl font-bold mb-4">Alert</h2>
-        <p className="text-gray-700 mb-6">
-          Since the date range is greater than 20 days, we will be providing you with the Excel sheet.
-        </p>
-        <div className="flex justify-end gap-4">
-          <button
-            onClick={() => {
-              setShowAlert(false);
-              handleResetFilters(); 
-            }}
-            className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 cursor-pointer"
-          >
-            Close
-          </button>
-          <button
-            onClick={() => {
-              
-              setShowAlert(false);
-              handleResetFilters(); 
-            }}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 cursor-pointer"
-          >
-            Download
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-
-  const TableComponent = ({ data }) => {
-    const [sortConfig, setSortConfig] = useState({
-      key: "date",
-      direction: "descending",
-    });
-
-    const sortedData = React.useMemo(() => {
-      if (!sortConfig.key) return data;
-
-      return [...data].sort((a, b) => {
-        const dateA = new Date(`${a.date} ${a.timeReceived}`);
-        const dateB = new Date(`${b.date} ${b.timeReceived}`);
-
-        if (dateA < dateB) {
-          return sortConfig.direction === "ascending" ? -1 : 1;
-        }
-        if (dateA > dateB) {
-          return sortConfig.direction === "ascending" ? 1 : -1;
-        }
-        return 0;
-      });
-    }, [data, sortConfig]);
-
-    const requestSort = (key) => {
-      let direction = "ascending";
-      if (sortConfig.key === key && sortConfig.direction === "ascending") {
-        direction = "descending";
-      }
-      setSortConfig({ key, direction });
-    };
-
-    return (
-      <div className="bg-white rounded-xl shadow-md p-6">
-        <div className="overflow-x-auto">
-          <table className="min-w-full">
-            <thead>
-              <tr className="bg-gray-50">
-                {["Invoice ID", "Vendor Name", "Payment", "Time Received", "Date", "Email ID", "Invoice"].map(
-                  (column, index) => (
-                    <th
-                      key={index}
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                      onClick={() =>
-                        requestSort(column.toLowerCase().replace(/\s+/g, ""))
-                      }
-                    >
-                      {column}
-                    </th>
-                  )
-                )}
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {sortedData.map((row, index) => (
-                <tr key={index} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {row.invoiceId}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {row.vendorName}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    ₹{row.payment.toLocaleString("en-IN")}
-                 </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {row.timeReceived}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {row.date}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {row.emailId}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <button
-                      onClick={() => {
-                        const absolutePdfUrl = row.pdfUrl.startsWith("http")
-                          ? row.pdfUrl
-                          : `${window.location.origin}${
-                              row.pdfUrl.startsWith("/") ? "" : "/"
-                            }${row.pdfUrl}`;
-                        setSelectedPdf(absolutePdfUrl);
-                        setShowPdfPreview(true);
-                      }}
-                      className="text-blue-600 hover:text-blue-800 cursor-pointer transition-colors duration-200 p-2 rounded-full hover:bg-blue-50"
-                      title="View PDF"
-                    >
-                      <FileText className="h-5 w-5" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    );
-  };
+  if (!isAuthenticated) {
+    return <LoginForm />;
+  }
 
   return (
-    <div className="min-h-screen bg-[#F2F2F2]">
+    <div className="min-h-screen bg-[#F2F2F2] relative">
       <Navbar />
       <Sidebar />
-      <div className="ml-[280px] pt-24 px-6">
-        <h1 className="text-4xl font-serif font-bold text-gray-800 mb-8">
-          Invoices Archive
-        </h1>
 
-        <FilterCard />
+      <main className="ml-[280px] pt-24 px-6">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-4xl font-serif font-bold text-gray-800">
+            Invoices Archive
+          </h1>
+        </div>
 
-        <TableComponent data={filteredData.length ? filteredData : tableData} />
+        {/* Pass tableData to FilterCard for download functionality */}
+        <FilterCard
+          onApplyFilters={handleApplyFilters}
+          onResetFilters={handleResetFilters}
+          tableData={searchFilteredData}
+        />
 
-        {showPdfPreview && (
-          <PdfPreviewModal
-            pdfUrl={selectedPdf}
-            onClose={() => {
-              setShowPdfPreview(false);
-              setSelectedPdf(null);
-            }}
-          />
-        )}
+        {/* ✅ SearchBar now updates `searchQuery` */}
+        <SearchBar onSearch={setSearchQuery} />
 
-        {showAlert && <AlertModal />}
-      </div>
+        {/* ✅ Pass the filtered & searched data to TableComponent */}
+        <TableComponent
+          title="Invoices Archive"
+          columns={[
+            { key: "order_id", label: "Order ID" },
+            { key: "invoice_no", label: "Invoice No" },
+            { key: "vendor_name", label: "Vendor Name" },
+            { key: "gstin", label: "GSTIN" },
+            { key: "order_date", label: "Order Date" },
+            {
+              key: "urgency",
+              label: "Urgency",
+              render: (row) => {
+                let urgencyColor = "bg-green-100 text-green-700 border border-green-400"; // Default: No Urgency (Green)
+                let urgencyText = "No Urgency"; // Default text
+            
+                if (row.urgency !== null) {
+                  const urgencyValue = parseInt(row.urgency, 10);
+            
+                  if (urgencyValue === 0) {
+                    urgencyText = "No Urgency";
+                  } else {
+                    urgencyText = `${urgencyValue} days`;
+                    if (urgencyValue < 10) {
+                      urgencyColor = "bg-red-100 text-red-700 border border-red-400"; // High urgency (Red)
+                    } else {
+                      urgencyColor = "bg-yellow-100 text-yellow-700 border border-yellow-400"; // Medium urgency (Yellow)
+                    }
+                  }
+                }
+            
+                return (
+                  <span className={`px-3 py-1 rounded-lg text-sm font-medium ${urgencyColor} shadow-sm`}>
+                    {urgencyText}
+                  </span>
+                );
+              },
+            },
+            { key: "total_amount", label: "Total Amount" },
+            { key: "cgst_amount", label: "CGST Amount" },
+            { key: "sgst_amount", label: "SGST Amount" },
+            { key: "igst_amount", label: "IGST Amount" },
+            { key: "total_amount", label: "Total Amount" },
+            { key: "pdf_url", label: "Invoice PDF" },
+            {
+              key: "payment_status",
+              label: "Payment Status",
+              render: (row) => {  // Accept the entire row object
+                const status = row.payment_status; // Extract the payment_status field
+            
+                let statusColor = "bg-gray-100 text-gray-800 border border-gray-300"; 
+                let statusText = status || "Unknown"; 
+            
+                if (status === "Paid") {
+                  statusColor = "bg-green-100 text-green-700 border border-green-400";
+                } else if (status === "Pending") {
+                  statusColor = "bg-yellow-100 text-red-700 border border-yellow-400";
+                } else if (status === "Overdue") {
+                  statusColor = "bg-red-100 text-red-700 border border-red-400";
+                }
+            
+                return (
+                  <span className={`px-3 py-1 rounded-lg text-sm font-medium ${statusColor} shadow-sm`}>
+                    {statusText}
+                  </span>
+                );
+              },
+            },
+          ]}
+          data={searchFilteredData}
+          onPdfClick={handlePdfClick}
+        />
+      </main>
+
+      {/* PDF Viewer Modal */}
+      {selectedPdf && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-5xl h-5/6 flex flex-col">
+            <div className="flex justify-between items-center p-4 border-b">
+              <h2 className="text-xl font-semibold">Invoice PDF</h2>
+              <button
+                onClick={closePdfViewer}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <FaTimes size={24} />
+              </button>
+            </div>
+            <div className="flex-grow p-2">
+              <iframe
+                src={selectedPdf} // ✅ Use direct preview link
+                className="w-full h-full border-0"
+                title="PDF Viewer"
+              ></iframe>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
